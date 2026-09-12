@@ -245,7 +245,7 @@ body {
     background: #fff;
     border: 1px solid #cbd5e1;
     border-radius: var(--ge-radius-sm);
-    font-size: 0.92rem;
+    font-size: 1rem;
     font-variant-numeric: tabular-nums;
     font-weight: 650;
     text-align: center;
@@ -710,7 +710,7 @@ body {
     }
     .ge-table > tbody:not(.ge-add-tbody) .ge-input {
         min-height: 3rem;
-        font-size: 0.95rem;
+        font-size: 1rem;
     }
     .ge-table > tbody:not(.ge-add-tbody) .ge-action-btn {
         width: 2.25rem;

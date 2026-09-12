@@ -1329,9 +1329,25 @@ const initAddSubjectControl = () => {
  * @function initGradeEvaluator
  * @author Cesar
  */
+/**
+ * DOCU: Updates the School Year badge in the card header to always
+ * reflect the current year and the next year (e.g., "S.Y. 2026–2027").
+ */
+const updateSchoolYearBadge = () => {
+    const schoolYearBadge = document.getElementById('ge_school_year');
+    if (!schoolYearBadge) return;
+
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+    schoolYearBadge.textContent = `S.Y. ${currentYear}-${nextYear}`;
+};
+
 const initGradeEvaluator = () => {
     // Set default/fallback value for Total Average Remarks before any calculations
     setDefaultTotalAverageRemarks();
+
+    // Dynamically set the School Year badge to current year and next year
+    updateSchoolYearBadge();
 
     updateAllAverages();
     updateAllClearButtons();

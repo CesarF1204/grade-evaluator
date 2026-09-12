@@ -55,17 +55,6 @@ body {
     border: 0 !important;
 }
 
-.ge-card > .card-header::after {
-    position: absolute;
-    right: 1.25rem;
-    bottom: 0;
-    width: 7rem;
-    height: 0.2rem;
-    content: "";
-    background: #55b8ff;
-    border-radius: 1rem 1rem 0 0;
-}
-
 .ge-card > .card-header > div {
     min-width: 0;
 }
@@ -79,7 +68,19 @@ body {
 }
 
 .ge-card > .card-header small {
+    position: relative;
     color: #c6d0dc !important;
+}
+
+.ge-card > .card-header small::after {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.35rem;
+    height: 0.2rem;
+    content: "";
+    background: #55b8ff;
+    border-radius: 1rem 1rem 0 0;
 }
 
 .ge-card > .card-header .badge {

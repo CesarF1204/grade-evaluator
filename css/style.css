@@ -476,6 +476,29 @@ body {
     box-shadow: 0 0 0 0.18rem rgba(180, 35, 24, 0.13);
 }
 
+/* Keep the red validation border visible while an invalid (duplicate /
+   required) subject name has focus. Without this, the generic :focus rule
+   would repaint the border blue and hide the error. */
+.ge-name-input.is-invalid-name:focus,
+.ge-name-input.is-invalid-name:hover:focus {
+    border-color: var(--ge-red);
+    background: var(--ge-red-soft);
+    box-shadow: 0 0 0 0.22rem rgba(180, 35, 24, 0.18);
+}
+
+/* Disabled grade inputs (empty name OR duplicate name): muted look and
+   not-allowed cursor. Mirrors the .ge-input-blocked guard styling. The hover
+   override keeps disabled fields muted so hovering a blocked grade never
+   flashes the blue hover tint or hides the subject's red error context. */
+.ge-input:disabled,
+.ge-input:disabled:hover:not(:focus) {
+    background-color: #f2f4f7;
+    border-color: var(--ge-line);
+    color: #98a2b3;
+    cursor: not-allowed;
+    opacity: 0.85;
+}
+
 .ge-visually-hidden {
     position: absolute;
     width: 1px;

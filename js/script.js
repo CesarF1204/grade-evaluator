@@ -50,6 +50,14 @@ const GRADE_PATTERN = /^\d{1,3}(?:\.\d{1,2})?$/;
 const GRADE_INVALID_MESSAGE = 'Enter a grade from 0 to 100, with up to 2 decimal places.';
 const NAME_REQUIRED_MESSAGE = 'Subject name is required';
 const GRADE_BLOCKED_TITLE = 'Enter the subject name first';
+/**
+ * DOCU: Message shown when two subject rows share the same name. <br>
+ * Kept in one constant so inline titles, toasts, and grade tooltips stay in sync. <br>
+ * Last Updated Date: September 13, 2026 <br>
+ * @author Cesar
+ */
+const NAME_DUPLICATE_MESSAGE = 'Subject name is already taken. Please choose a different name.';
+const GRADE_DUPLICATE_TITLE = 'Resolve the duplicate subject name first';
 const NAME_REQUIRED_ANNOUNCEMENT = 'Please enter a subject name before entering a grade.';
 
 /**
@@ -193,6 +201,74 @@ const parseGrade = (input) => {
     if (!isValidGradeValue(raw)) return null;
 
     return Number(raw);
+};
+
+/**
+ * DOCU: This function is used to collect every subject name input in the <br>
+ * subjects body, in DOM order. Centralizes the query so duplicate detection, <br>
+ * add-guard validation, and global refreshes all see the same list. <br>
+ * Last Updated Date: September 13, 2026 <br>
+ * @function getSubjectNameInputs
+ * @returns {object[]} the subject name inputs currently in the table
+ * @author Cesar
+ */
+const getSubjectNameInputs = () => [...document.querySelectorAll(SUBJECTS_BODY_SELECTOR + ' ' + SUBJECT_NAME_INPUT_SELECTOR)];
+
+/**
+ * DOCU: This function is used to find every subject name input whose trimmed, <br>
+ * case-insensitive value appears more than once. Empty names are ignored so <br>
+ * blank new rows never flag each other as duplicates. <br>
+ * Last Updated Date: September 13, 2026 <br>
+ * @function getDuplicateNameInputs
+ * @returns {object[]} the name inputs that currently have a duplicate value
+ * @author Cesar
+ */
+const getDuplicateNameInputs = () => {
+    const nameInputs = getSubjectNameInputs();
+    const counts = new Map();
+    nameInputs.forEach((nameInput) => {
+        const normalized = nameInput.value.trim().toLowerCase();
+        if (!normalized) return;
+        counts.set(normalized, (counts.get(normalized) || 0) + 1);
+    });
+    return nameInputs.filter((nameInput) => {
+        const normalized = nameInput.value.trim().toLowerCase();
+        return normalized !== '' && counts.get(normalized) > 1;
+    });
+};
+
+/**
+ * DOCU: This function is used to refresh duplicate-subject validation across <br>
+ * ALL rows in real time. Every input sharing a trimmed, case-insensitive name <br>
+ * keeps the red `.is-invalid-name` border (even while typing, hovering, or <br>
+ * focusing a grade field) and every affected row re-syncs its grade inputs so <br>
+ * duplicates stay disabled until the names differ again. Resolved names clear <br>
+ * only the duplicate styling — required (empty) errors owned by blur validation <br>
+ * are left untouched. <br>
+ * Last Updated Date: September 13, 2026 <br>
+ * @function refreshDuplicateSubjectStates
+ * @author Cesar
+ */
+const refreshDuplicateSubjectStates = () => {
+    const subjectsBody = document.querySelector(SUBJECTS_BODY_SELECTOR);
+    if (!subjectsBody) return;
+
+    const duplicates = new Set(getDuplicateNameInputs());
+    getSubjectNameInputs().forEach((nameInput) => {
+        if (duplicates.has(nameInput)) {
+            nameInput.classList.add('is-invalid-name');
+            nameInput.setAttribute('aria-invalid', 'true');
+            nameInput.title = NAME_DUPLICATE_MESSAGE;
+            nameInput.dataset.geDuplicate = 'true';
+        } else if (nameInput.dataset.geDuplicate === 'true') {
+            delete nameInput.dataset.geDuplicate;
+            nameInput.classList.remove('is-invalid-name');
+            nameInput.removeAttribute('aria-invalid');
+            nameInput.title = 'Enter the subject name';
+        }
+    });
+
+    subjectsBody.querySelectorAll(SUBJECT_ROW_SELECTOR).forEach((row) => syncGradeInputsState(row));
 };
 
 /**
@@ -638,6 +714,7 @@ const deleteSubjectRow = (row) => {
 
     row.remove();
     updateAllAverages();
+    refreshDuplicateSubjectStates();
     showSuccessToast('Subject removed successfully.');
 };
 
@@ -987,13 +1064,15 @@ const showErrorToast = (message) => {
  * DOCU: This function is used to validate one subject name input: the name <br>
  * is required (after the user has touched the field) and must be unique <br>
  * among the other subject rows. <br>
- * The invalid state (`.is-invalid-name` + aria-invalid + tooltip title) is <br>
- * shown only on blur or Enter; typing clears the error immediately so it <br>
- * never feels punishing. <br>
- * Last Updated Date: September 12, 2026 <br>
+ * Duplicate styling is applied globally via refreshDuplicateSubjectStates so <br>
+ * ALL rows sharing a name keep the red `.is-invalid-name` border in real <br>
+ * time (even while typing, hovering, or focusing a grade field). This <br>
+ * single-input validator only reports the pass/fail result plus any toast / <br>
+ * required-empty styling owned by blur and Enter commits. <br>
+ * Last Updated Date: September 13, 2026 <br>
  * @function validateSubjectName
  * @param {object} nameInput - the subject name input to validate
- * @param {boolean} showError - true to display the error state, false to only clear it
+ * @param {boolean} showError - true to display the error state, false to only report validity
  * @returns {boolean} true when the name is valid
  * @author Cesar
  */
@@ -1009,24 +1088,28 @@ const validateSubjectName = (nameInput, showError) => {
             nameInput.title = NAME_REQUIRED_MESSAGE;
             return false;
         }
-        nameInput.classList.remove('is-invalid-name');
-        nameInput.removeAttribute('aria-invalid');
-        nameInput.title = 'Enter the subject name';
+        // Untouched blanks are neutral; a resolved duplicate clears its flag here
+        if (nameInput.dataset.geDuplicate === 'true') delete nameInput.dataset.geDuplicate;
+        if (!touched) {
+            nameInput.classList.remove('is-invalid-name');
+            nameInput.removeAttribute('aria-invalid');
+            nameInput.title = 'Enter the subject name';
+        }
         return !touched;
     }
 
-    // Duplicate name check (case-insensitive) against the other rows
-    const isDuplicate = [...document.querySelectorAll(SUBJECTS_BODY_SELECTOR + ' ' + SUBJECT_NAME_INPUT_SELECTOR)]
+    // Duplicate name check (case-insensitive) against the other rows.
+    // Styling/disabled sync for every affected row happens in the global
+    // refresh so all duplicates update together in real time.
+    const isDuplicate = getSubjectNameInputs()
         .some((other) => other !== nameInput && other.value.trim().toLowerCase() === value.toLowerCase());
 
-    if (isDuplicate && showError) {
-        nameInput.classList.add('is-invalid-name');
-        nameInput.setAttribute('aria-invalid', 'true');
-        nameInput.title = 'Subject name is already taken. Please choose a different name.';
-        showErrorToast('Subject name is already taken. Please choose a different name.');
+    if (isDuplicate) {
+        if (showError) showErrorToast(NAME_DUPLICATE_MESSAGE);
         return false;
     }
 
+    if (nameInput.dataset.geDuplicate === 'true') delete nameInput.dataset.geDuplicate;
     nameInput.classList.remove('is-invalid-name');
     nameInput.removeAttribute('aria-invalid');
     nameInput.title = 'Enter the subject name';
@@ -1160,11 +1243,13 @@ const focusSubjectNameError = (row) => {
 
 /**
  * DOCU: This function is used to block or unblock one subject row's four <br>
- * grade fields based on its Subject Name. Blocked fields are read-only, <br>
- * removed from the tab order, marked `aria-disabled`, get a not-allowed <br>
- * cursor + muted look, and a tooltip explains why. Once the name becomes <br>
- * valid, the fields are restored to normal editing immediately. <br>
- * Last Updated Date: September 12, 2026 <br>
+ * grade fields based on its Subject Name. Blocked fields use the real <br>
+ * `disabled` property (leaves tab order, rejects focus/typing), are marked <br>
+ * `aria-disabled`, get a not-allowed cursor + muted look, and a tooltip <br>
+ * explains why. A row is blocked when its name is empty OR when its name is <br>
+ * a duplicate of another row. Once the name becomes valid and unique, the <br>
+ * fields are restored to normal editing immediately. <br>
+ * Last Updated Date: September 13, 2026 <br>
  * @function syncGradeInputsState
  * @param {object} row - the subject <tr> whose grade fields should be synced
  * @author Cesar
@@ -1173,15 +1258,17 @@ const syncGradeInputsState = (row) => {
     if (!row) return;
     const nameInput = row.querySelector(SUBJECT_NAME_INPUT_SELECTOR);
     const hasNameError = nameInput && nameInput.classList.contains('is-invalid-name');
+    const isDuplicate = nameInput && nameInput.dataset.geDuplicate === 'true';
     const blocked = !hasValidSubjectName(row) || hasNameError;
 
     row.querySelectorAll(GRADE_INPUT_SELECTOR).forEach((gradeInput) => {
-        gradeInput.readOnly = blocked;
-        gradeInput.tabIndex = blocked ? -1 : 0;
         gradeInput.classList.toggle('ge-input-blocked', blocked);
+        gradeInput.disabled = blocked;
+        gradeInput.readOnly = false;
+        gradeInput.tabIndex = blocked ? -1 : 0;
         if (blocked) {
             gradeInput.setAttribute('aria-disabled', 'true');
-            gradeInput.title = hasNameError ? 'Subject name is already taken. Please choose a different name.' : GRADE_BLOCKED_TITLE;
+            gradeInput.title = (isDuplicate || (hasNameError && hasValidSubjectName(row))) ? GRADE_DUPLICATE_TITLE : GRADE_BLOCKED_TITLE;
         } else {
             gradeInput.removeAttribute('aria-disabled');
             gradeInput.title = 'Enter grade';
@@ -1216,14 +1303,29 @@ const initSubjectNameRequiredGuard = () => {
     if (!subjectsBody) return;
 
     // Shared redirect: an attempted interaction with a blocked grade field
-    // reports the required Subject Name and moves the user into it
+    // (empty name OR duplicate name) reports the problem on the Subject Name
+    // and moves the user into it. Disabled grade inputs reject focus natively,
+    // so this is a fallback for programmatic / edge-case focus attempts.
     const redirectBlockedGradeAttempt = (event) => {
         if (!event.target.matches(GRADE_INPUT_SELECTOR)) return;
 
         const row = event.target.closest(SUBJECT_ROW_SELECTOR);
-        if (row && hasValidSubjectName(row)) return;
+        const nameInput = row && row.querySelector(SUBJECT_NAME_INPUT_SELECTOR);
+        const isDuplicate = nameInput && nameInput.dataset.geDuplicate === 'true';
+        if (row && hasValidSubjectName(row) && !isDuplicate) return;
 
         event.preventDefault();
+        if (isDuplicate && nameInput) {
+            showNameError(nameInput, NAME_DUPLICATE_MESSAGE);
+            announceMessage(NAME_DUPLICATE_MESSAGE);
+            if (isElementFullyVisible(nameInput)) {
+                nameInput.focus();
+                return;
+            }
+            nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            nameInput.focus({ preventScroll: true });
+            return;
+        }
         focusSubjectNameError(row);
     };
 
@@ -1266,25 +1368,44 @@ const guardExistingSubjectNames = (subjectsBody) => {
     // If there are empty names, return the first invalid one without checking duplicates
     if (firstInvalid) return firstInvalid;
 
-    // Second pass: check for duplicate names (case-insensitive, trimmed)
+    // Second pass: check for duplicate names (case-insensitive, trimmed).
+    // Every row sharing a name is invalid — not just the later occurrence —
+    // so all duplicates keep the red border and disabled grade inputs.
     const seenNames = new Map(); // lowercase name -> first input with that name
+    const duplicateInputs = new Set();
     nameInputs.forEach((nameInput) => {
         commitSubjectNameValue(nameInput);
         const normalized = nameInput.value.trim().toLowerCase();
+        if (!normalized) return;
 
         if (seenNames.has(normalized)) {
-            // Duplicate found: mark the current input as invalid
-            showNameError(nameInput, 'Subject name is already taken. Please choose a different name.');
-            showErrorToast('Subject name is already taken. Please choose a different name.');
-            if (!firstInvalid) firstInvalid = nameInput;
+            duplicateInputs.add(nameInput);
+            duplicateInputs.add(seenNames.get(normalized));
         } else {
             seenNames.set(normalized, nameInput);
+        }
+    });
+
+    nameInputs.forEach((nameInput) => {
+        if (duplicateInputs.has(nameInput)) {
+            // Duplicate found: mark every affected input as invalid
+            showNameError(nameInput, NAME_DUPLICATE_MESSAGE);
+            nameInput.dataset.geDuplicate = 'true';
+            if (!firstInvalid) firstInvalid = nameInput;
+        } else if (nameInput.value.trim()) {
             // Clear any lingering error for unique names
+            if (nameInput.dataset.geDuplicate === 'true') delete nameInput.dataset.geDuplicate;
             nameInput.classList.remove('is-invalid-name');
             nameInput.removeAttribute('aria-invalid');
             nameInput.title = 'Enter the subject name';
         }
-        // Sync grade inputs state based on validation result
+    });
+
+    if (duplicateInputs.size > 0) showErrorToast(NAME_DUPLICATE_MESSAGE);
+
+    // Re-sync grade disabled state for every row so duplicates disable all
+    // affected grade inputs (and resolved names re-enable them) in real time.
+    nameInputs.forEach((nameInput) => {
         const row = nameInput.closest(SUBJECT_ROW_SELECTOR);
         if (row) syncGradeInputsState(row);
     });
@@ -1351,7 +1472,8 @@ const initAddSubjectControl = () => {
 
     // Validate on blur: trim the committed value first (a spaces-only
     // name becomes empty and is reported as required), then run the
-    // required + duplicate checks with inline feedback
+    // required + duplicate checks with inline feedback. The global duplicate
+    // refresh keeps ALL rows sharing a name red + grade-disabled in real time.
     subjectsBody.addEventListener('focusout', (event) => {
         if (event.target.matches(SUBJECT_NAME_INPUT_SELECTOR)) {
             const nameInput = event.target;
@@ -1359,10 +1481,9 @@ const initAddSubjectControl = () => {
             commitSubjectNameValue(nameInput);
             const newValue = nameInput.value.trim();
             const isValid = validateSubjectName(nameInput, true);
-            // Re-sync grade access: a name committed to whitespace-only/empty
-            // blocks its row's grade fields again
-            const row = nameInput.closest(SUBJECT_ROW_SELECTOR);
-            if (row) syncGradeInputsState(row);
+            // Global pass: paint every duplicate (this row + its twins) and
+            // sync grade disabled state across the table
+            refreshDuplicateSubjectStates();
             // Show toast only when the subject name actually changed (valid, non-empty, and different from original)
             if (isValid && newValue && newValue !== originalValue) {
                 showSuccessToast(`Subject name updated to "${newValue}".`);
@@ -1371,15 +1492,15 @@ const initAddSubjectControl = () => {
     });
 
     // Sanitize live while typing (no leading spaces, single spaces between
-    // words) and clear the error state as soon as the value becomes valid
+    // words) and refresh duplicate styling/disabled state in real time: every
+    // row sharing a name stays red + grade-disabled until names differ again.
+    // Typing never clears another row's required-empty error — only duplicate
+    // flags are owned by this global pass.
     subjectsBody.addEventListener('input', (event) => {
         if (event.target.matches(SUBJECT_NAME_INPUT_SELECTOR)) {
             sanitizeSubjectNameLive(event.target);
             validateSubjectName(event.target, false);
-            // Immediately unblock (or re-block) the row's grade fields as the
-            // name becomes valid/empty — whitespace-only counts as empty
-            const row = event.target.closest(SUBJECT_ROW_SELECTOR);
-            if (row) syncGradeInputsState(row);
+            refreshDuplicateSubjectStates();
         }
     });
 
@@ -1394,6 +1515,7 @@ const initAddSubjectControl = () => {
             commitSubjectNameValue(nameInput);
             if (validateSubjectName(nameInput, true)) {
                 const newValue = nameInput.value.trim();
+                refreshDuplicateSubjectStates();
                 // Show toast only when the subject name actually changed (non-empty and different from original)
                 if (newValue && newValue !== originalValue) {
                     showSuccessToast(`Subject name updated to "${newValue}".`);
@@ -1401,6 +1523,8 @@ const initAddSubjectControl = () => {
                 const row = nameInput.closest(SUBJECT_ROW_SELECTOR);
                 const firstGrade = row.querySelector(GRADE_INPUT_SELECTOR);
                 if (firstGrade) firstGrade.focus();
+            } else {
+                refreshDuplicateSubjectStates();
             }
         }
     });
@@ -1442,10 +1566,11 @@ const initGradeEvaluator = () => {
     initRowActions();
 
     // Subject Name must come first: block grade fields of every row whose
-    // name is empty (server-rendered rows included) and intercept any grade
-    // attempts with a clear required-name error + focus redirect
+    // name is empty (server-rendered rows included), flag any pre-existing
+    // duplicates with the red border + disabled grades, and intercept any
+    // grade attempts with a clear error + focus redirect
     initSubjectNameRequiredGuard();
-    updateAllGradeInputsState();
+    refreshDuplicateSubjectStates();
 
     // Event delegation: one listener handles all quarter inputs,
     // including those in dynamically added rows. While typing, the value

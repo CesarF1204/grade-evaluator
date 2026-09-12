@@ -69,12 +69,49 @@ const isValidGradeValue = (raw) => {
 };
 
 /**
+ * DOCU: This function is used to remove unnecessary leading zeros from a <br>
+ * sanitized grade value while preserving its numeric meaning. A whole-number <br>
+ * portion made entirely of zeros collapses to a single "0", and leading zeros <br>
+ * before other digits are stripped (e.g. "005" → "5", "000" → "0", "00.5" → <br>
+ * "0.5"). The decimal portion is left untouched. Values that already have no <br>
+ * unnecessary leading zeros, empty values, and bare decimal points are <br>
+ * returned unchanged so the typing flow stays natural. <br>
+ * Last Updated Date: September 13, 2026 <br>
+ * @function normalizeLeadingZeros
+ * @param {string} value - the sanitized grade value (digits and at most one decimal point)
+ * @returns {string} the value with unnecessary leading zeros removed
+ * @author Cesar
+ */
+const normalizeLeadingZeros = (value) => {
+    // Skip empty values and bare decimal points to avoid disrupting typing
+    if (!value || value === '.') return value;
+
+    const firstDot = value.indexOf('.');
+
+    // Split into whole and decimal portions (decimal portion includes the dot)
+    const hasDot = firstDot !== -1;
+    const whole = hasDot ? value.slice(0, firstDot) : value;
+    const decimalPart = hasDot ? value.slice(firstDot) : '';
+
+    // Only normalize when the whole part actually has unnecessary leading zeros:
+    // it must have more than one digit and start with '0'
+    if (whole.length <= 1 || whole[0] !== '0') return value;
+
+    // Strip leading zeros from the whole part; collapse all-zero strings to "0"
+    const stripped = whole.replace(/^0+/, '');
+    const normalizedWhole = stripped === '' ? '0' : stripped;
+
+    return normalizedWhole + decimalPart;
+};
+
+/**
  * DOCU: This function is used to sanitize a grade input while the user is <br>
  * typing. It strips every character that is not a digit or a decimal <br>
  * point (blocking letters, symbols, math operators, whitespace, and <br>
  * scientific notation), keeps only the first decimal point (blocking <br>
- * multiple decimal points), and caps the decimal portion at 2 places. <br>
- * Last Updated Date: September 12, 2026 <br>
+ * multiple decimal points), caps the decimal portion at 2 places, and <br>
+ * normalizes unnecessary leading zeros. <br>
+ * Last Updated Date: September 13, 2026 <br>
  * @function sanitizeGradeValue
  * @param {string} raw - the raw value currently typed by the user
  * @returns {string} the sanitized value safe to place back in the input
@@ -90,7 +127,7 @@ const sanitizeGradeValue = (raw) => {
         value = `${whole}.${decimals}`;
     }
 
-    return value;
+    return normalizeLeadingZeros(value);
 };
 
 /**

@@ -1021,9 +1021,6 @@ const commitSubjectNameValue = (nameInput) => {
  * @author Cesar
  */
 const showNameError = (nameInput, message) => {
-    nameInput.classList.remove('is-invalid-name');
-    // Restart the shake animation even when the class was already applied
-    void nameInput.offsetWidth;
     nameInput.classList.add('is-invalid-name');
     nameInput.setAttribute('aria-invalid', 'true');
     nameInput.title = message;

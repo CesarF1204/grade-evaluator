@@ -139,15 +139,24 @@
 }
 
 /* ============================================================
-   "+" add-row control: its whole row is hidden until the table
-   is hovered; always visible on touch devices and small screens.
+   "Add subject" control: a full-width, dashed, ghost-style
+   button that only appears while the table is hovered (or
+   focused via keyboard), keeping the layout clean at rest.
+   Always visible on touch devices and small screens where
+   hover isn't reliable.
    ============================================================ */
+.ge-add-tbody > tr > td {
+    background-color: transparent;
+}
+
+/* Whole row hidden at rest (no reserved space); revealed when the
+   pointer is over the table, or reachable via keyboard focus */
 .ge-add-tbody > tr {
     display: none;
 }
 
-/* Reveal the row when the table is hovered */
-.ge-table:hover .ge-add-tbody > tr {
+.ge-table:hover .ge-add-tbody > tr,
+.ge-add-tbody:focus-within > tr {
     display: table-row;
 }
 
@@ -156,10 +165,98 @@
     .ge-add-tbody > tr {
         display: table-row;
     }
+}
 
-    .ge-add-btn {
-        opacity: 1;
+.ge-add-btn {
+    padding: 0.55rem 1rem;
+    min-height: 44px;                 /* comfortable tap target (Apple HIG) */
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--bs-primary);
+    background-color: var(--bs-primary-bg-subtle);
+    border: 1.5px dashed var(--bs-primary);
+    border-radius: 0.625rem;
+    transition: background-color 0.15s ease-in-out,
+                border-color 0.15s ease-in-out,
+                transform 0.1s ease,
+                box-shadow 0.15s ease-in-out;
+}
+
+/* Hover: solidify the affordance so it reads as clearly tappable */
+.ge-add-btn:hover {
+    color: #fff;
+    background-color: var(--bs-primary);
+    border-style: solid;
+    box-shadow: 0 0.25rem 0.75rem rgba(13, 110, 253, 0.35);
+}
+
+/* Subtle press feedback for touch users */
+.ge-add-btn:active {
+    transform: scale(0.985);
+}
+
+/* Visible keyboard focus ring */
+.ge-add-btn:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.35);
+}
+
+/* Icon nudges on hover to hint the "add" action */
+.ge-add-btn .bi {
+    transition: transform 0.15s ease-in-out;
+}
+
+.ge-add-btn:hover .bi {
+    transform: scale(1.15);
+}
+
+/* ============================================================
+   New-row feedback: brief highlight flash + fade-in so users
+   can see exactly where the new subject was inserted.
+   ============================================================ */
+@keyframes geRowFlash {
+    0% {
+        background-color: rgba(13, 110, 253, 0.18);
     }
+    100% {
+        background-color: transparent;
+    }
+}
+
+.ge-table > tbody > tr.ge-row-new {
+    animation: geRowFlash 1.2s ease-out forwards;
+}
+
+@keyframes geNameShake {
+    0%, 100% { transform: translateX(0); }
+    25%      { transform: translateX(-3px); }
+    75%      { transform: translateX(3px); }
+}
+
+/* Invalid subject name: red border + gentle shake + helper text */
+.ge-name-input.is-invalid-name {
+    border-color: var(--bs-danger);
+    background-color: #fff;
+    animation: geNameShake 0.25s ease-in-out;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.ge-name-input.is-invalid-name:focus {
+    border-color: var(--bs-danger);
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* Screen-reader-only live region for add-subject feedback */
+.ge-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 /* ============================================================

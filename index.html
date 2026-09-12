@@ -57,7 +57,7 @@
                             <tbody class="ge-subjects">
                                 <tr>
                                     <td class="text-start">
-                                        <input type="text" class="form-control form-control-sm px-2 ge-name-input" value="Filipino" placeholder="Subject name" aria-label="Subject name" title="Click to edit subject name">
+                                        <input type="text" class="form-control form-control-sm px-2 ge-name-input" value="Filipino" placeholder="e.g. Mathematics" maxlength="60" aria-label="Subject name" title="Enter the subject name">
                                     </td>
                                     <td><input type="text" inputmode="decimal" autocomplete="off" class="form-control form-control-sm text-center px-1 ge-input" min="0" max="100" step="0.01" placeholder="0-100" title="Enter grade" aria-label="Quarter 1 grade for Filipino"></td>
                                     <td><input type="text" inputmode="decimal" autocomplete="off" class="form-control form-control-sm text-center px-1 ge-input" min="0" max="100" step="0.01" placeholder="0-100" title="Enter grade" aria-label="Quarter 2 grade for Filipino"></td>
@@ -74,7 +74,7 @@
                                 </tr>
                                 <tr>
                                     <td class="text-start">
-                                        <input type="text" class="form-control form-control-sm px-2 ge-name-input" value="English" placeholder="Subject name" aria-label="Subject name" title="Click to edit subject name">
+                                        <input type="text" class="form-control form-control-sm px-2 ge-name-input" value="English" placeholder="e.g. Mathematics" maxlength="60" aria-label="Subject name" title="Enter the subject name">
                                     </td>
                                     <td><input type="text" inputmode="decimal" autocomplete="off" class="form-control form-control-sm text-center px-1 ge-input" min="0" max="100" step="0.01" placeholder="0-100" title="Enter grade" aria-label="Quarter 1 grade for English"></td>
                                     <td><input type="text" inputmode="decimal" autocomplete="off" class="form-control form-control-sm text-center px-1 ge-input" min="0" max="100" step="0.01" placeholder="0-100" title="Enter grade" aria-label="Quarter 2 grade for English"></td>
@@ -91,7 +91,7 @@
                                 </tr>
                                 <tr>
                                     <td class="text-start">
-                                        <input type="text" class="form-control form-control-sm px-2 ge-name-input" value="Mathematics" placeholder="Subject name" aria-label="Subject name" title="Click to edit subject name">
+                                        <input type="text" class="form-control form-control-sm px-2 ge-name-input" value="Mathematics" placeholder="e.g. Mathematics" maxlength="60" aria-label="Subject name" title="Enter the subject name">
                                     </td>
                                     <td><input type="text" inputmode="decimal" autocomplete="off" class="form-control form-control-sm text-center px-1 ge-input" min="0" max="100" step="0.01" placeholder="0-100" title="Enter grade" aria-label="Quarter 1 grade for Mathematics"></td>
                                     <td><input type="text" inputmode="decimal" autocomplete="off" class="form-control form-control-sm text-center px-1 ge-input" min="0" max="100" step="0.01" placeholder="0-100" title="Enter grade" aria-label="Quarter 2 grade for Mathematics"></td>
@@ -108,7 +108,7 @@
                                 </tr>
                                 <tr>
                                     <td class="text-start">
-                                        <input type="text" class="form-control form-control-sm px-2 ge-name-input" value="Science" placeholder="Subject name" aria-label="Subject name" title="Click to edit subject name">
+                                        <input type="text" class="form-control form-control-sm px-2 ge-name-input" value="Science" placeholder="e.g. Mathematics" maxlength="60" aria-label="Subject name" title="Enter the subject name">
                                     </td>
                                     <td><input type="text" inputmode="decimal" autocomplete="off" class="form-control form-control-sm text-center px-1 ge-input" min="0" max="100" step="0.01" placeholder="0-100" title="Enter grade" aria-label="Quarter 1 grade for Science"></td>
                                     <td><input type="text" inputmode="decimal" autocomplete="off" class="form-control form-control-sm text-center px-1 ge-input" min="0" max="100" step="0.01" placeholder="0-100" title="Enter grade" aria-label="Quarter 2 grade for Science"></td>
@@ -124,12 +124,15 @@
                                     </td>
                                 </tr>
                             </tbody>
-                            <!-- "+" add-subject control: lives in its own tbody so it
+                            <!-- "Add subject" control: lives in its own tbody so it
                                  always sits directly underneath the last subject row -->
-                            <tbody class="table-light ge-add-tbody">
+                            <tbody class="ge-add-tbody">
                                 <tr>
-                                    <td colspan="8" class="text-start ps-3 py-2">
-                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-circle d-inline-flex align-items-center justify-content-center ge-add-btn" aria-label="Add subject" title="Add subject">+</button>
+                                    <td colspan="8" class="p-2">
+                                        <button type="button" class="btn w-100 d-inline-flex align-items-center justify-content-center gap-2 ge-add-btn" aria-label="Add a new subject row" title="Add subject">
+                                            <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                                            <span>Add subject</span>
+                                        </button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -170,6 +173,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Screen-reader live region announcing add-subject feedback -->
+    <div id="geLiveRegion" class="ge-visually-hidden" aria-live="polite" role="status"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/script.js"></script>

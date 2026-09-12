@@ -33,6 +33,7 @@ const CONFIRM_MODAL_SELECTOR = '#geConfirmModal';
 const CONFIRM_MODAL_TITLE_SELECTOR = '#geConfirmModalTitle';
 const CONFIRM_MODAL_BODY_SELECTOR = '#geConfirmModalBody';
 const CONFIRM_MODAL_ACTION_SELECTOR = '#geConfirmModalAction';
+const LIVE_REGION_SELECTOR = '#geLiveRegion';
 const PASSING_GRADE = 75;
 /**
  * Strict grade format: 0-100, whole or with up to 2 decimal places.
@@ -314,9 +315,11 @@ const createSubjectRow = () => {
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.className = 'form-control form-control-sm px-2 ge-name-input';
-    nameInput.placeholder = 'Subject name';
-    nameInput.title = 'Click to edit subject name';
+    nameInput.placeholder = 'e.g. Mathematics';
+    nameInput.title = 'Enter the subject name';
+    nameInput.maxLength = 60;
     nameInput.setAttribute('aria-label', 'Subject name');
+    nameInput.setAttribute('data-ge-name-input', '');
     nameCell.appendChild(nameInput);
     row.appendChild(nameCell);
 
@@ -664,21 +667,183 @@ const initRowActions = () => {
 };
 
 /**
- * DOCU: This function is used to wire up the single "+" add-subject <br>
- * control. <br>
- * The button is created once in the HTML (inside its own <tbody> under <br>
- * the subject rows), so exactly one listener is ever attached — no <br>
- * duplicate buttons or broken listeners. <br>
+ * DOCU: This function is used to announce a short feedback message through <br>
+ * the screen-reader live region (#geLiveRegion). <br>
  * Last Updated Date: September 12, 2026 <br>
- * @function initAddSubjectControl
+ * @function announceMessage
+ * @param {string} message - the text to announce
  * @author Cesar
  */
+const announceMessage = (message) => {
+    const liveRegion = document.querySelector(LIVE_REGION_SELECTOR);
+    if (!liveRegion) return;
+    liveRegion.textContent = '';
+    // Repopulate on the next tick so repeated identical messages re-announce
+    window.setTimeout(() => { liveRegion.textContent = message; }, 50);
+};
+
+/**
+ * DOCU: This function is used to validate one subject name input: the name <br>
+ * is required (after the user has touched the field) and must be unique <br>
+ * among the other subject rows. <br>
+ * The invalid state (`.is-invalid-name` + aria-invalid + tooltip title) is <br>
+ * shown only on blur or Enter; typing clears the error immediately so it <br>
+ * never feels punishing. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function validateSubjectName
+ * @param {object} nameInput - the subject name input to validate
+ * @param {boolean} showError - true to display the error state, false to only clear it
+ * @returns {boolean} true when the name is valid
+ * @author Cesar
+ */
+const validateSubjectName = (nameInput, showError) => {
+    const value = nameInput.value.trim();
+
+    // Empty name: only an error once the user has interacted (touched) it
+    if (!value) {
+        const touched = nameInput.dataset.geTouched === 'true';
+        if (touched && showError) {
+            nameInput.classList.add('is-invalid-name');
+            nameInput.setAttribute('aria-invalid', 'true');
+            nameInput.title = 'Subject name is required';
+            return false;
+        }
+        nameInput.classList.remove('is-invalid-name');
+        nameInput.removeAttribute('aria-invalid');
+        nameInput.title = 'Enter the subject name';
+        return !touched;
+    }
+
+    // Duplicate name check (case-insensitive) against the other rows
+    const isDuplicate = [...document.querySelectorAll(SUBJECTS_BODY_SELECTOR + ' ' + SUBJECT_NAME_INPUT_SELECTOR)]
+        .some((other) => other !== nameInput && other.value.trim().toLowerCase() === value.toLowerCase());
+
+    if (isDuplicate && showError) {
+        nameInput.classList.add('is-invalid-name');
+        nameInput.setAttribute('aria-invalid', 'true');
+        nameInput.title = 'This subject name is already in the list';
+        announceMessage('This subject name is already in the list. Please choose a different name.');
+        return false;
+    }
+
+    nameInput.classList.remove('is-invalid-name');
+    nameInput.removeAttribute('aria-invalid');
+    nameInput.title = 'Enter the subject name';
+    return true;
+};
+/**
+ * DOCU: This function is used to sanitize a subject name while typing: it <br>
+ * strips leading whitespace (so the value can never start with a space) <br>
+ * and collapses repeated spaces into one, while preserving the single <br>
+ * spaces between words (e.g. "Computer Science"). <br>
+ * The caret position is kept as stable as possible while cleaning. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function sanitizeSubjectNameLive
+ * @param {object} nameInput - the subject name input to sanitize
+ * @author Cesar
+ */
+const sanitizeSubjectNameLive = (nameInput) => {
+    const original = nameInput.value;
+    const cleaned = original.replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
+    if (cleaned === original) return;
+
+    const caret = nameInput.selectionStart;
+    nameInput.value = cleaned;
+
+    // Keep the caret in a sensible place after removing characters
+    if (caret !== null) {
+        const removedBeforeCaret = Math.max(0, caret - (original.length - cleaned.length));
+        const position = cleaned.length === 0 ? 0 : Math.min(Math.max(removedBeforeCaret, 0), cleaned.length);
+        nameInput.setSelectionRange(position, position);
+    }
+};
+
+/**
+ * DOCU: This function is used to finalize a subject name when its value is <br>
+ * committed (blur or Enter): trailing whitespace is trimmed and the value <br>
+ * is written back trimmed, so the stored/displayed name never has <br>
+ * leading or trailing spaces. A value of only spaces becomes empty, <br>
+ * which validation then treats as "required". <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function commitSubjectNameValue
+ * @param {object} nameInput - the subject name input to finalize
+ * @author Cesar
+ */
+const commitSubjectNameValue = (nameInput) => {
+    const trimmed = nameInput.value.trim();
+    if (trimmed !== nameInput.value) {
+        nameInput.value = trimmed;
+    }
+};
+
+/**
+ * DOCU: This function is used to show (or clear) the validation error on a <br>
+ * subject name input. Used by both blur validation and the Add Subject <br>
+ * guard so every empty/duplicate name error looks and behaves the same. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function showNameError
+ * @param {object} nameInput - the subject name input to mark as invalid
+ * @param {string} message - the error message (tooltip title)
+ * @author Cesar
+ */
+const showNameError = (nameInput, message) => {
+    nameInput.classList.remove('is-invalid-name');
+    // Restart the shake animation even when the class was already applied
+    void nameInput.offsetWidth;
+    nameInput.classList.add('is-invalid-name');
+    nameInput.setAttribute('aria-invalid', 'true');
+    nameInput.title = message;
+};
+
+/**
+ * DOCU: This function is used to validate every existing subject name before <br>
+ * a new subject row can be added. <br>
+ * Any empty Subject Name is marked as invalid; valid names get their error <br>
+ * state cleared immediately. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function guardExistingSubjectNames
+ * @param {object} subjectsBody - the subjects <tbody> to check
+ * @returns {object|null} the first invalid name input, or null when all are valid
+ * @author Cesar
+ */
+const guardExistingSubjectNames = (subjectsBody) => {
+    const nameInputs = [...subjectsBody.querySelectorAll(SUBJECT_NAME_INPUT_SELECTOR)];
+    let firstInvalid = null;
+
+    nameInputs.forEach((nameInput) => {
+        if (!nameInput.value.trim()) {
+            showNameError(nameInput, 'Subject name is required');
+            if (!firstInvalid) firstInvalid = nameInput;
+        } else {
+            // Valid name: store it trimmed and clear any lingering error
+            commitSubjectNameValue(nameInput);
+            nameInput.classList.remove('is-invalid-name');
+            nameInput.removeAttribute('aria-invalid');
+            nameInput.title = 'Enter the subject name';
+        }
+    });
+
+    return firstInvalid;
+};
+
 const initAddSubjectControl = () => {
     const addButton = document.querySelector(ADD_BUTTON_SELECTOR);
     const subjectsBody = document.querySelector(SUBJECTS_BODY_SELECTOR);
     if (!addButton || !subjectsBody) return;
 
     addButton.addEventListener('click', () => {
+        // Guard: every existing subject must have a name before another
+        // row can be added (works no matter how many subjects exist)
+        const invalidInput = guardExistingSubjectNames(subjectsBody);
+        if (invalidInput) {
+            // Scroll the first invalid field into view, then focus it so
+            // the user can immediately type the missing subject name
+            invalidInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            invalidInput.focus({ preventScroll: true });
+            announceMessage('Please enter a subject name for every existing subject before adding another one.');
+            return; // new subject is NOT added until the name is provided
+        }
+
         const lastRow = subjectsBody.querySelector('tr:last-of-type');
         if (!lastRow) return;
 
@@ -686,13 +851,64 @@ const initAddSubjectControl = () => {
         lastRow.after(newRow); // control <tbody> stays below the new last row
 
         updateAllAverages(); // show "—"/Incomplete for the blank row
-        newRow.querySelector(SUBJECT_NAME_INPUT_SELECTOR).focus();
+
+        // Visual feedback: brief highlight flash on the freshly added row
+        newRow.classList.add('ge-row-new');
+        newRow.addEventListener('animationend', () => newRow.classList.remove('ge-row-new'), { once: true });
+
+        const nameInput = newRow.querySelector(SUBJECT_NAME_INPUT_SELECTOR);
+        nameInput.focus();
 
         // Initialize the Bootstrap tooltips on the new row's action buttons
         if (window.bootstrap && bootstrap.Tooltip) {
             newRow.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
                 bootstrap.Tooltip.getOrCreateInstance(el);
             });
+        }
+
+        announceMessage('New subject row added. Enter the subject name and its quarterly grades.');
+    });
+
+    // Mark name inputs as touched on first focus so empty-on-blur errors
+    // only fire for fields the user actually interacted with
+    subjectsBody.addEventListener('focusin', (event) => {
+        if (event.target.matches(SUBJECT_NAME_INPUT_SELECTOR)) {
+            event.target.dataset.geTouched = 'true';
+        }
+    });
+
+    // Validate on blur: trim the committed value first (a spaces-only
+    // name becomes empty and is reported as required), then run the
+    // required + duplicate checks with inline feedback
+    subjectsBody.addEventListener('focusout', (event) => {
+        if (event.target.matches(SUBJECT_NAME_INPUT_SELECTOR)) {
+            commitSubjectNameValue(event.target);
+            validateSubjectName(event.target, true);
+        }
+    });
+
+    // Sanitize live while typing (no leading spaces, single spaces between
+    // words) and clear the error state as soon as the value becomes valid
+    subjectsBody.addEventListener('input', (event) => {
+        if (event.target.matches(SUBJECT_NAME_INPUT_SELECTOR)) {
+            sanitizeSubjectNameLive(event.target);
+            validateSubjectName(event.target, false);
+        }
+    });
+
+    // Enter on a valid name jumps straight to the first quarter grade;
+    // Enter on an invalid name shows the error and stays put
+    subjectsBody.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && event.target.matches(SUBJECT_NAME_INPUT_SELECTOR)) {
+            event.preventDefault();
+            const nameInput = event.target;
+            nameInput.dataset.geTouched = 'true';
+            commitSubjectNameValue(nameInput);
+            if (validateSubjectName(nameInput, true)) {
+                const row = nameInput.closest(SUBJECT_ROW_SELECTOR);
+                const firstGrade = row.querySelector(GRADE_INPUT_SELECTOR);
+                if (firstGrade) firstGrade.focus();
+            }
         }
     });
 };

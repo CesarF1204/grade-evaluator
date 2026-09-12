@@ -25,6 +25,14 @@ const SUBJECT_ROWS_SELECTOR = 'tbody.ge-subjects tr';
 const SUBJECT_NAME_INPUT_SELECTOR = '.ge-name-input';
 const ADD_BUTTON_SELECTOR = '.ge-add-btn';
 const SUBJECTS_BODY_SELECTOR = 'tbody.ge-subjects';
+const SUBJECT_ROW_SELECTOR = 'tr';
+const RESET_BUTTON_SELECTOR = '.ge-action-reset';
+const RESET_TOOLTIP_HOST_SELECTOR = '.ge-tooltip-host';
+const DELETE_BUTTON_SELECTOR = '.ge-action-delete';
+const CONFIRM_MODAL_SELECTOR = '#geConfirmModal';
+const CONFIRM_MODAL_TITLE_SELECTOR = '#geConfirmModalTitle';
+const CONFIRM_MODAL_BODY_SELECTOR = '#geConfirmModalBody';
+const CONFIRM_MODAL_ACTION_SELECTOR = '#geConfirmModalAction';
 const PASSING_GRADE = 75;
 /**
  * Strict grade format: 0-100, whole or with up to 2 decimal places.
@@ -339,7 +347,320 @@ const createSubjectRow = () => {
         '<span class="badge rounded-pill text-warning-emphasis bg-warning-subtle fw-medium">Incomplete</span>';
     row.appendChild(remarksCell);
 
+    row.appendChild(createActionCell());
+
     return row;
+};
+
+/**
+ * DOCU: This function is used to build the Action cell with the Clear <br>
+ * all subject grades (clear values) and Delete (remove subject) icon <br>
+ * buttons for a subject row. <br>
+ * Buttons carry Bootstrap tooltip attributes; no IDs are used anywhere so <br>
+ * dynamically added rows can never create duplicate IDs or broken handlers <br>
+ * (behavior is wired through event delegation instead of per-row listeners). <br>
+ * The Clear button starts disabled because a brand-new row has no grades. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function createActionCell
+ * @returns {object} the <td> containing the Clear and Delete buttons
+ * @author Cesar
+ */
+const createActionCell = () => {
+    const actionCell = document.createElement('td');
+    actionCell.className = 'ge-col-action';
+    actionCell.innerHTML =
+        '<div class="d-inline-flex align-items-center gap-1">' +
+        '<span class="d-inline-block ge-tooltip-host" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Clear all subject grades">' +
+        '<button type="button" class="btn btn-sm btn-outline-secondary ge-action-btn ge-action-reset" aria-label="Clear all subject grades" disabled><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i></button>' +
+        '</span>' +
+        '<button type="button" class="btn btn-sm btn-outline-danger ge-action-btn ge-action-delete" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Remove subject" aria-label="Delete subject"><i class="bi bi-trash3" aria-hidden="true"></i></button>' +
+        '</div>';
+    return actionCell;
+};
+
+/**
+ * DOCU: This function is used to clear the Quarter 1–4 grade inputs of one <br>
+ * subject row. The subject name is never touched, the row is kept in the <br>
+ * table, and validation states/tooltips on the cleared inputs are removed. <br>
+ * The Average is cleared too because the required quarterly grades are no <br>
+ * longer complete; updateAllAverages() then re-renders the Average cell, <br>
+ * the Remarks badge, and the Total Average (blank while any subject is <br>
+ * incomplete). Other subjects are never modified. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function resetSubjectRow
+ * @param {object} row - the subject <tr> whose grades should be cleared
+ * @author Cesar
+ */
+const resetSubjectRow = (row) => {
+    row.querySelectorAll(GRADE_INPUT_SELECTOR).forEach((input) => {
+        input.value = '';
+        input.classList.remove('is-valid', 'is-invalid');
+        updateGradeTooltip(input, null);
+    });
+
+    updateClearButtonState(row);
+    updateAllAverages();
+};
+
+/**
+ * DOCU: This function is used to update the tooltip shown when hovering the <br>
+ * "Clear all subject grades" button. The tooltip lives on the wrapper <br>
+ * `.ge-tooltip-host` span so it stays reachable while the button is <br>
+ * disabled. When the button is disabled (no grades entered), the tooltip <br>
+ * explains why ("No grade value was entered") and the cursor becomes a <br>
+ * not-allowed cursor; when enabled, it shows the action's name. Because <br>
+ * Bootstrap caches the tooltip title from `data-bs-title` at instance <br>
+ * creation, the tooltip is disposed and recreated whenever the state <br>
+ * changes. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function updateResetTooltip
+ * @param {object} row - the subject <tr> whose Clear tooltip should be updated
+ * @author Cesar
+ */
+const updateResetTooltip = (row) => {
+    const host = row.querySelector(RESET_TOOLTIP_HOST_SELECTOR);
+    const clearButton = row.querySelector(RESET_BUTTON_SELECTOR);
+    if (!host || !clearButton) return;
+
+    const isDisabled = clearButton.disabled;
+
+    if (window.bootstrap && bootstrap.Tooltip) {
+        const existingTooltip = bootstrap.Tooltip.getInstance(host);
+        if (existingTooltip) existingTooltip.dispose();
+    }
+
+    host.setAttribute('data-bs-title', isDisabled
+        ? 'No grade value was entered'
+        : 'Clear all subject grades');
+    host.classList.toggle('ge-no-grades', isDisabled);
+
+    if (window.bootstrap && bootstrap.Tooltip) {
+        bootstrap.Tooltip.getOrCreateInstance(host);
+    }
+};
+
+/**
+ * DOCU: This function is used to enable or disable the "Clear all subject <br>
+ * grades" button of one subject row. The button is disabled whenever none <br>
+ * of the Quarter 1–4 fields hold any value, and enabled as soon as at <br>
+ * least one grade has been entered. The tooltip on the button's wrapper <br>
+ * is kept in sync with the disabled state. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function updateClearButtonState
+ * @param {object} row - the subject <tr> whose Clear button should be updated
+ * @author Cesar
+ */
+const updateClearButtonState = (row) => {
+    const clearButton = row.querySelector(RESET_BUTTON_SELECTOR);
+    if (!clearButton) return;
+
+    const hasAnyGrade = [...row.querySelectorAll(GRADE_INPUT_SELECTOR)]
+        .some((input) => input.value.trim() !== '');
+
+    clearButton.disabled = !hasAnyGrade;
+    updateResetTooltip(row);
+};
+
+/**
+ * DOCU: This function is used to refresh the disabled/enabled state of the <br>
+ * "Clear all subject grades" button on every subject row. Used at startup <br>
+ * so server-rendered (pre-filled) rows get the correct state too. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function updateAllClearButtons
+ * @author Cesar
+ */
+const updateAllClearButtons = () => {
+    document.querySelectorAll(SUBJECT_ROWS_SELECTOR).forEach(updateClearButtonState);
+};
+
+/**
+ * DOCU: This function is used to remove one subject row from the table. <br>
+ * Tooltips attached to its action buttons are disposed first (preventing <br>
+ * orphaned tooltip instances), then the row is deleted. Other subjects are <br>
+ * never touched, and the Total Average is recalculated per the existing <br>
+ * rules after the row is gone. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function deleteSubjectRow
+ * @param {object} row - the subject <tr> to remove
+ * @author Cesar
+ */
+const deleteSubjectRow = (row) => {
+    if (window.bootstrap && bootstrap.Tooltip) {
+        row.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+            const tooltip = bootstrap.Tooltip.getInstance(el);
+            if (tooltip) tooltip.dispose();
+        });
+    }
+
+    row.remove();
+    updateAllAverages();
+};
+
+/**
+ * DOCU: This module-level variable holds the action that is waiting for the <br>
+ * user to confirm it inside the confirmation modal. It stores the pending <br>
+ * subject <tr> and the action type ("reset" or "delete") captured at the <br>
+ * moment the destructive button was clicked, and is cleared as soon as the <br>
+ * modal is hidden — so clicking Cancel, pressing Esc, or clicking outside <br>
+ * always results in no changes. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @var pendingConfirmAction
+ * @author Cesar
+ */
+let pendingConfirmAction = null;
+
+/**
+ * DOCU: This function is used to read the current display name of a subject <br>
+ * row for use in confirmation messages. Falls back to a generic label when <br>
+ * the name field is blank. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function getSubjectDisplayName
+ * @param {object} row - the subject <tr> to read the name from
+ * @returns {string} the subject's name, or "this subject" when blank
+ * @author Cesar
+ */
+const getSubjectName = (row) => {
+    const nameInput = row.querySelector(SUBJECT_NAME_INPUT_SELECTOR);
+    const name = nameInput ? nameInput.value.trim() : '';
+    return name !== '' ? name : 'this subject';
+};
+
+/**
+ * DOCU: This function is used to show the shared Bootstrap confirmation <br>
+ * modal for a destructive action. It fills in the title, the descriptive <br>
+ * body message, and the emphasis of the confirmation button (warning for <br>
+ * "Clear All Grades", danger for "Remove Subject"), stores the pending <br>
+ * action, and then shows the modal. Only the modal's confirm button <br>
+ * (see handleConfirmedAction) ever executes the destructive change. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function showConfirmModal
+ * @param {object} options - { type: "reset"|"delete", row: <tr> }
+ * @author Cesar
+ */
+const showConfirmModal = ({ type, row }) => {
+    const modalElement = document.querySelector(CONFIRM_MODAL_SELECTOR);
+    if (!modalElement) return;
+
+    const subjectName = getSubjectName(row);
+    const titleElement = modalElement.querySelector(CONFIRM_MODAL_TITLE_SELECTOR);
+    const bodyElement = modalElement.querySelector(CONFIRM_MODAL_BODY_SELECTOR);
+    const actionButton = modalElement.querySelector(CONFIRM_MODAL_ACTION_SELECTOR);
+    if (!titleElement || !bodyElement || !actionButton) return;
+
+    if (type === 'reset') {
+        titleElement.textContent = 'Clear all subject grades?';
+        bodyElement.textContent =
+            `All Quarter 1–4 grades for "${subjectName}" will be cleared and ` +
+            'its Average removed. This cannot be undone with a single click.';
+        actionButton.innerHTML =
+            '<i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>Clear All Grades';
+        actionButton.className = 'btn ge-confirm-action px-4 btn-warning';
+    } else {
+        titleElement.textContent = 'Remove subject?';
+        bodyElement.innerHTML =
+            `<strong>"${subjectName}"</strong> will be permanently removed from the table. ` +
+            '<span class="text-danger fw-semibold">This action cannot be undone.</span>';
+        actionButton.innerHTML =
+            '<i class="bi bi-trash3 me-1" aria-hidden="true"></i>Remove Subject';
+        actionButton.className = 'btn ge-confirm-action px-4 btn-danger';
+    }
+
+    // Keep exactly one pending action; re-opening the modal simply replaces it
+    pendingConfirmAction = { type, row };
+
+    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+    modalInstance.show();
+
+    // Focus the Cancel button once the modal is visible, so an accidental
+    // Enter keypress cancels the action instead of confirming it
+    modalElement.addEventListener('shown.bs.modal', () => {
+        const cancelButton = modalElement.querySelector('.ge-confirm-cancel');
+        if (cancelButton) cancelButton.focus();
+    }, { once: true });
+};
+
+/**
+ * DOCU: This function is called when the user clicks the confirmation button <br>
+ * inside the modal. It runs the pending destructive action (clear grades or <br>
+ * remove subject), then hides the modal and clears the pending state. If no <br>
+ * pending action exists, it does nothing. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function handleConfirmedAction
+ * @author Cesar
+ */
+const handleConfirmedAction = () => {
+    if (!pendingConfirmAction) return;
+
+    const { type, row } = pendingConfirmAction;
+    pendingConfirmAction = null;
+
+    const modalElement = document.querySelector(CONFIRM_MODAL_SELECTOR);
+    const modalInstance = modalElement ? bootstrap.Modal.getInstance(modalElement) : null;
+    if (modalInstance) modalInstance.hide();
+
+    if (type === 'reset' && row.isConnected) {
+        resetSubjectRow(row);
+    } else if (type === 'delete' && row.isConnected) {
+        deleteSubjectRow(row);
+    }
+};
+
+/**
+ * DOCU: This function is used to wire up the Reset and Delete actions for <br>
+ * every subject row through a single delegated click listener on the <br>
+ * subjects <tbody>. Because the listener lives on the <tbody> itself, <br>
+ * dynamically added rows automatically get the same two actions without <br>
+ * any extra wiring. Neither action executes directly: clicking either <br>
+ * button only opens the shared confirmation modal, and the action runs <br>
+ * solely after the user clicks its explicit confirm button. <br>
+ * Also initializes the Bootstrap tooltips on the action buttons and the <br>
+ * confirm-modal listeners (attached once, so no duplicate handlers). <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function initRowActions
+ * @author Cesar
+ */
+const initRowActions = () => {
+    const subjectsBody = document.querySelector(SUBJECTS_BODY_SELECTOR);
+    if (!subjectsBody) return;
+
+    if (window.bootstrap && bootstrap.Tooltip) {
+        subjectsBody.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+            bootstrap.Tooltip.getOrCreateInstance(el);
+        });
+    }
+
+    subjectsBody.addEventListener('click', (event) => {
+        const resetButton = event.target.closest(RESET_BUTTON_SELECTOR);
+        if (resetButton) {
+            const row = resetButton.closest('tr');
+            if (row) showConfirmModal({ type: 'reset', row });
+            return;
+        }
+
+        const deleteButton = event.target.closest(DELETE_BUTTON_SELECTOR);
+        if (deleteButton) {
+            const row = deleteButton.closest('tr');
+            if (row) showConfirmModal({ type: 'delete', row });
+        }
+    });
+
+    // Confirmation modal wiring: attached exactly once (the modal is a single,
+    // static element in index.html). The destructive action runs ONLY from the
+    // explicit confirm button; Cancel, Esc, and the backdrop close button all
+    // simply hide the modal with no changes made.
+    const modalElement = document.querySelector(CONFIRM_MODAL_SELECTOR);
+    if (!modalElement) return;
+
+    const confirmActionButton = modalElement.querySelector(CONFIRM_MODAL_ACTION_SELECTOR);
+    if (confirmActionButton) {
+        confirmActionButton.addEventListener('click', handleConfirmedAction);
+    }
+
+    // Clear the pending action whenever the modal closes by any means
+    // (Cancel button, Esc key, backdrop click, or the X close button)
+    modalElement.addEventListener('hidden.bs.modal', () => {
+        pendingConfirmAction = null;
+    });
 };
 
 /**
@@ -366,6 +687,13 @@ const initAddSubjectControl = () => {
 
         updateAllAverages(); // show "—"/Incomplete for the blank row
         newRow.querySelector(SUBJECT_NAME_INPUT_SELECTOR).focus();
+
+        // Initialize the Bootstrap tooltips on the new row's action buttons
+        if (window.bootstrap && bootstrap.Tooltip) {
+            newRow.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+                bootstrap.Tooltip.getOrCreateInstance(el);
+            });
+        }
     });
 };
 
@@ -381,7 +709,9 @@ const initAddSubjectControl = () => {
  */
 const initGradeEvaluator = () => {
     updateAllAverages();
+    updateAllClearButtons();
     initAddSubjectControl();
+    initRowActions();
 
     // Event delegation: one listener handles all quarter inputs,
     // including those in dynamically added rows. While typing, the value
@@ -392,6 +722,10 @@ const initGradeEvaluator = () => {
             sanitizeGradeInput(event.target);
             validateGradeInput(event.target);
             updateAllAverages();
+
+            // Live enable/disable of the Clear button for the edited row
+            const subjectRow = event.target.closest(SUBJECT_ROW_SELECTOR);
+            if (subjectRow) updateClearButtonState(subjectRow);
         }
     });
 

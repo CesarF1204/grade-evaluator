@@ -13,6 +13,43 @@
     width: 120px;
 }
 
+/* Action column: compact, just wide enough for the two icon buttons */
+.ge-col-action {
+    width: 92px;
+}
+
+/* Action buttons: compact square icon buttons, comfortable on touch too */
+.ge-action-btn {
+    padding: 0.25rem 0.4rem;
+    line-height: 1;
+}
+
+.ge-action-btn .bi {
+    font-size: 0.9rem;
+    vertical-align: middle;
+}
+
+/* Softer, muted look for the Clear (secondary) button */
+.ge-action-reset {
+    color: var(--bs-secondary-color);
+}
+
+/* Tooltip host wrapping the Clear button: keeps the tooltip reachable
+   even while the button itself is disabled (Bootstrap-documented pattern) */
+.ge-tooltip-host {
+    vertical-align: middle;
+    cursor: help;
+}
+
+/* Disabled Clear button: not-allowed cursor with the "no grades" tooltip */
+.ge-tooltip-host.ge-no-grades {
+    cursor: not-allowed;
+}
+
+/* ============================================================
+   Action column: Reset + Delete icon buttons per subject row
+   ============================================================ */
+
 /* Comfortable, consistent cell padding / row height */
 .ge-table > thead > tr > th,
 .ge-table > tbody > tr > td,
@@ -124,6 +161,62 @@
         opacity: 1;
     }
 }
+
+/* ============================================================
+   Confirmation modal: friendly, touch-friendly footer buttons
+   - large tap targets (44px+, Apple HIG) for mobile / iPhone / Safari
+   - equal-width side by side on ≥sm screens, stacked full-width below
+   - visible focus ring for keyboard users, press feedback on tap
+   ============================================================ */
+#geConfirmModal .modal-footer {
+    padding: 0.75rem 1rem 1rem;
+    border-top: 0;
+}
+
+#geConfirmModal .modal-footer .btn {
+    min-height: 48px;
+    min-width: 8.5rem;
+    flex: 1 1 0;
+    font-weight: 600;
+    border-radius: 0.625rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+/* Cancel: clearly the safe, secondary choice */
+#geConfirmModal .ge-confirm-cancel {
+    background-color: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+#geConfirmModal .ge-confirm-cancel:hover {
+    background-color: var(--bs-secondary-bg);
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+/* Subtle press feedback for touch users */
+#geConfirmModal .modal-footer .btn:active {
+    transform: scale(0.97);
+}
+
+/* Visible keyboard focus ring */
+#geConfirmModal .modal-footer .btn:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.35);
+}
+
+@media (max-width: 575.98px) {
+    #geConfirmModal .modal-footer .btn {
+        width: 100%;       /* full-width stacked buttons on phones */
+        min-width: 0;
+    }
+}
+
+
 
 
 

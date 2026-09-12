@@ -57,12 +57,18 @@ body {
 
 .ge-card > .card-header {
     position: relative;
+    padding: 1.1rem 1.25rem;
     color: #fff;
     background: #182230 !important;
     border: 0 !important;
-    /* Safari flexbox fix: ensure proper flex-wrap behavior */
-    -webkit-flex-wrap: wrap;
-    -ms-flex-wrap: wrap;
+}
+
+/* Ensure School Year badge stays right-aligned on all screens */
+.ge-card-header .badge {
+    margin-left: auto;
+    -webkit-flex-shrink: 0;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .ge-card > .card-header > div {
@@ -540,6 +546,9 @@ body {
 }
 
 @media (min-width: 768px) {
+    .ge-card > .card-header {
+        padding: 1.25rem 1.5rem !important;
+    }
     .ge-card > .card-body {
         padding: 1.5rem !important;
     }
@@ -555,10 +564,6 @@ body {
     }
     .ge-card > .card-header {
         align-items: center !important;
-        /* Safari flexbox fix: prevent wrapping on mobile */
-        -webkit-flex-wrap: nowrap !important;
-        -ms-flex-wrap: nowrap !important;
-        flex-wrap: nowrap !important;
         padding: 0.875rem 1.125rem !important;
     }
     .ge-card > .card-header > div:first-child {
@@ -593,11 +598,6 @@ body {
         /* Smaller badge on mobile - still readable */
         font-size: 0.8rem !important;
         padding: 0.4rem 0.6rem !important;
-        /* Safari flexbox fix: ensure badge stays right-aligned */
-        -webkit-flex-shrink: 0 !important;
-        flex-shrink: 0 !important;
-        margin-left: auto;
-        margin-top: 0;
     }
     .ge-table {
         display: block;

@@ -54,7 +54,7 @@
                                         <th class="ge-col-q fw-semibold">4</th>
                                     </tr>
                                 </thead>
-                            <tbody class="ge-subjects">
+                            <tbody class="ge-subjects" id="ge_subjects_body">
                                 <tr>
                                     <td class="text-start">
                                         <input type="text" class="form-control form-control-sm px-2 ge-name-input" value="Filipino" placeholder="e.g. Mathematics" maxlength="60" aria-label="Subject name" title="Enter the subject name">
@@ -129,7 +129,7 @@
                             <tbody class="ge-add-tbody">
                                 <tr>
                                     <td colspan="8" class="p-2">
-                                        <button type="button" class="btn w-100 d-inline-flex align-items-center justify-content-center gap-2 ge-add-btn" aria-label="Add a new subject row" title="Add subject">
+                                        <button type="button" class="btn w-100 d-inline-flex align-items-center justify-content-center gap-2 ge-add-btn" id="ge_add_subject_button" aria-label="Add a new subject row" title="Add subject">
                                             <i class="bi bi-plus-lg" aria-hidden="true"></i>
                                             <span>Add subject</span>
                                         </button>
@@ -139,7 +139,7 @@
                             <tfoot class="table-light fs-6">
                                 <tr>
                                     <td colspan="5" class="text-start ps-3 fw-semibold">Total Average</td>
-                                    <td class="fw-bold fs-6"></td>
+                                    <td id="ge_total_average" class="fw-bold fs-6"></td>
                                     <td id="total_average_remarks" class="text-center fw-bold fs-6"></td>
                                     <td class="ge-col-action"></td>
                                 </tr>
@@ -154,19 +154,19 @@
     </main>
 
     <!-- ===== Confirmation modal for destructive actions (Clear grades / Remove subject) ===== -->
-    <div class="modal fade" id="geConfirmModal" tabindex="-1" aria-labelledby="geConfirmModalTitle" aria-hidden="true">
+    <div class="modal fade" id="ge_confirm_modal" tabindex="-1" aria-labelledby="ge_confirm_modal_title" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="geConfirmModalTitle">Confirm action</h5>
+                    <h5 class="modal-title" id="ge_confirm_modal_title">Confirm action</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body" id="geConfirmModalBody"></div>
+                <div class="modal-body" id="ge_confirm_modal_body"></div>
                 <div class="modal-footer flex-column flex-sm-row gap-2">
                     <button type="button" class="btn ge-confirm-cancel px-4" data-bs-dismiss="modal">
                         <i class="bi bi-x-lg me-1" aria-hidden="true"></i>Cancel
                     </button>
-                    <button type="button" class="btn ge-confirm-action px-4" id="geConfirmModalAction">
+                    <button type="button" class="btn ge-confirm-action px-4" id="ge_confirm_modal_action">
                         <i class="bi bi-check-lg me-1" aria-hidden="true"></i>Confirm
                     </button>
                 </div>
@@ -175,7 +175,7 @@
     </div>
 
     <!-- Screen-reader live region announcing add-subject feedback -->
-    <div id="geLiveRegion" class="ge-visually-hidden" aria-live="polite" role="status"></div>
+    <div id="ge_live_region" class="ge-visually-hidden" aria-live="polite" role="status"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/script.js"></script>

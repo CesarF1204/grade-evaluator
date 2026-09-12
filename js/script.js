@@ -290,35 +290,39 @@ const updateAllAverages = () => {
     });
 
     const totalAverageCell = document.querySelector(TOTAL_AVERAGE_CELL_SELECTOR);
+    // The Total Average only exists when EVERY subject has a completed
+    // individual average (all four quarters valid). Incomplete subjects
+    // are never treated as 0 and never averaged partially; the "—" dash
+    // is the fallback display while the total cannot be calculated.
+    const allComplete = gradedCount === subjectRows.length && gradedCount > 0;
+    const totalAverage = allComplete ? roundGrade(total / gradedCount) : null;
+
     if (totalAverageCell) {
-        // The Total Average only exists when EVERY subject has a completed
-        // individual average (all four quarters valid). Incomplete subjects
-        // are never treated as 0 and never averaged partially; the "—" dash
-        // is the fallback display while the total cannot be calculated.
-        const allComplete = gradedCount === subjectRows.length && gradedCount > 0;
-        totalAverageCell.textContent = allComplete ? roundGrade(total / gradedCount) : '—';
+        totalAverageCell.textContent = totalAverage !== null ? totalAverage : '—';
     }
 
-    // Update Total Average Remarks based on all subjects' remarks
-    updateTotalAverageRemarks(subjectRows);
+    // Update Total Average Remarks based on all subjects' remarks and the Total Average
+    updateTotalAverageRemarks(subjectRows, totalAverage);
 };
 
 /**
  * DOCU: Pure function that calculates the Total Average Remarks based on
- * the remarks of all subjects. Returns the appropriate status string
- * without any DOM manipulation.
+ * the remarks of all subjects and the overall Total Average. Returns the
+ * appropriate status string without any DOM manipulation.
  * Priority rules:
- * 1. If any subject has "Incomplete" → "-" (highest priority)
+ * 1. If any subject has "Incomplete" → "—" (highest priority)
  * 2. If any subject has "Failed" → "Unqualified"
- * 3. If all subjects have "Passed" → "Promoted"
- * 4. Otherwise (empty/missing/indeterminate) → "-" (fallback)
- * Last Updated Date: September 12, 2026
+ * 3. If all subjects have "Passed" AND Total Average >= 75 → "Promoted"
+ * 4. If all subjects have "Passed" AND Total Average < 75 → "Unqualified"
+ * 5. Otherwise (empty/missing/indeterminate) → "—" (fallback)
+ * Last Updated Date: September 13, 2026
  * @function calculateTotalAverageRemarks
  * @param {NodeList} subjectRows - all subject table rows to evaluate
+ * @param {number|null} totalAverage - the rounded overall Total Average, or null when not all subjects have valid averages
  * @returns {string} the calculated Total Average Remarks value
  * @author Cesar
  */
-const calculateTotalAverageRemarks = (subjectRows) => {
+const calculateTotalAverageRemarks = (subjectRows, totalAverage) => {
     // Collect all subject remarks
     const remarks = [];
     subjectRows.forEach((row) => {
@@ -344,26 +348,28 @@ const calculateTotalAverageRemarks = (subjectRows) => {
     if (remarks.some((r) => r === 'Failed')) {
         return 'Unqualified';
     }
-    // Priority 3: All Passed → Promoted
-    if (remarks.every((r) => r === 'Passed')) {
+    // At this point, every subject remark is "Passed"
+    // Priority 3: All Passed AND Total Average >= 75 → Promoted
+    if (totalAverage !== null && totalAverage >= 75) {
         return 'Promoted';
     }
-    // Priority 4: Any other combination (shouldn't normally occur) → fallback
-    return '—';
+    // Priority 4: All Passed AND Total Average < 75 → Unqualified
+    return 'Unqualified';
 };
 
 /**
  * DOCU: Updates the Total Average Remarks cell with the calculated value.
  * Uses cached DOM reference for better performance.
- * Last Updated Date: September 12, 2026
+ * Last Updated Date: September 13, 2026
  * @function updateTotalAverageRemarks
  * @param {NodeList} subjectRows - all subject table rows to evaluate
+ * @param {number|null} totalAverage - the rounded overall Total Average, or null when not all subjects have valid averages
  * @author Cesar
  */
-const updateTotalAverageRemarks = (subjectRows) => {
+const updateTotalAverageRemarks = (subjectRows, totalAverage) => {
     if (!totalAverageRemarksCell) return;
 
-    const remarks = calculateTotalAverageRemarks(subjectRows);
+    const remarks = calculateTotalAverageRemarks(subjectRows, totalAverage);
     totalAverageRemarksCell.textContent = remarks;
     totalAverageRemarksCell.className = `text-center fw-bold fs-6 ge-total-remark ge-total-remark--${remarks.toLowerCase().replace('—', 'none')}`;
 };

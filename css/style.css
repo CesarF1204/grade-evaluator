@@ -3,14 +3,14 @@
    (everything else is Bootstrap utility classes)
    ============================================ */
 
-/* Column proportions Bootstrap utilities can't set */
-.ge-col-q,
-.ge-col-final {
-    width: 84px;
-}
-
+/* ============================================================
+   Remarks column: center the badge/remark value
+   ============================================================ */
 .ge-col-remarks {
     width: 120px;
+}
+.ge-col-remarks td {
+    text-align: center;
 }
 
 /* Action column: compact, just wide enough for the two icon buttons */

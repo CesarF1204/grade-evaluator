@@ -19,7 +19,8 @@
  */
 const GRADE_INPUT_SELECTOR = '.ge-input';
 const AVERAGE_CELL_SELECTOR = 'td.text-primary-emphasis';
-const REMARKS_BADGE_SELECTOR = 'td.text-start .badge';
+const REMARKS_BADGE_SELECTOR = 'td.text-center .badge';
+const TOTAL_AVERAGE_REMARKS_SELECTOR = '#total_average_remarks';
 const TOTAL_AVERAGE_CELL_SELECTOR = 'tfoot td.fw-bold';
 const SUBJECT_ROWS_SELECTOR = 'tbody.ge-subjects tr';
 const SUBJECT_NAME_INPUT_SELECTOR = '.ge-name-input';
@@ -35,6 +36,11 @@ const CONFIRM_MODAL_BODY_SELECTOR = '#geConfirmModalBody';
 const CONFIRM_MODAL_ACTION_SELECTOR = '#geConfirmModalAction';
 const LIVE_REGION_SELECTOR = '#geLiveRegion';
 const PASSING_GRADE = 75;
+/**
+ * Cached reference to the Total Average Remarks cell in the footer.
+ * Set once on init and reused for all subsequent updates.
+ */
+let totalAverageRemarksCell = null;
 /**
  * Strict grade format: 0-100, whole or with up to 2 decimal places.
  * Rejects negatives, >100, >2 decimals, letters, symbols, and
@@ -292,6 +298,88 @@ const updateAllAverages = () => {
         const allComplete = gradedCount === subjectRows.length && gradedCount > 0;
         totalAverageCell.textContent = allComplete ? roundGrade(total / gradedCount) : '—';
     }
+
+    // Update Total Average Remarks based on all subjects' remarks
+    updateTotalAverageRemarks(subjectRows);
+};
+
+/**
+ * DOCU: Pure function that calculates the Total Average Remarks based on
+ * the remarks of all subjects. Returns the appropriate status string
+ * without any DOM manipulation.
+ * Priority rules:
+ * 1. If any subject has "Incomplete" → "-" (highest priority)
+ * 2. If any subject has "Failed" → "Unqualified"
+ * 3. If all subjects have "Passed" → "Promoted"
+ * 4. Otherwise (empty/missing/indeterminate) → "-" (fallback)
+ * Last Updated Date: September 12, 2026
+ * @function calculateTotalAverageRemarks
+ * @param {NodeList} subjectRows - all subject table rows to evaluate
+ * @returns {string} the calculated Total Average Remarks value
+ * @author Cesar
+ */
+const calculateTotalAverageRemarks = (subjectRows) => {
+    // Collect all subject remarks
+    const remarks = [];
+    subjectRows.forEach((row) => {
+        const remarksBadge = row.querySelector(REMARKS_BADGE_SELECTOR);
+        if (remarksBadge) {
+            const remark = remarksBadge.textContent.trim();
+            if (remark) {
+                remarks.push(remark);
+            }
+        }
+    });
+
+    // If no remarks collected (no subjects or all empty), use fallback
+    if (remarks.length === 0) {
+        return '—';
+    }
+
+    // Priority 1: Incomplete has highest priority - if any subject is Incomplete, result is "—"
+    if (remarks.some((r) => r === 'Incomplete')) {
+        return '—';
+    }
+    // Priority 2: Failed takes priority over Promoted
+    if (remarks.some((r) => r === 'Failed')) {
+        return 'Unqualified';
+    }
+    // Priority 3: All Passed → Promoted
+    if (remarks.every((r) => r === 'Passed')) {
+        return 'Promoted';
+    }
+    // Priority 4: Any other combination (shouldn't normally occur) → fallback
+    return '—';
+};
+
+/**
+ * DOCU: Updates the Total Average Remarks cell with the calculated value.
+ * Uses cached DOM reference for better performance.
+ * Last Updated Date: September 12, 2026
+ * @function updateTotalAverageRemarks
+ * @param {NodeList} subjectRows - all subject table rows to evaluate
+ * @author Cesar
+ */
+const updateTotalAverageRemarks = (subjectRows) => {
+    if (!totalAverageRemarksCell) return;
+
+    const remarks = calculateTotalAverageRemarks(subjectRows);
+    totalAverageRemarksCell.textContent = remarks;
+};
+
+/**
+ * DOCU: Sets the default/fallback value "—" for Total Average Remarks.
+ * Called once on initialization before any calculations occur.
+ * Last Updated Date: September 12, 2026
+ * @function setDefaultTotalAverageRemarks
+ * @author Cesar
+ */
+const setDefaultTotalAverageRemarks = () => {
+    totalAverageRemarksCell = document.querySelector(TOTAL_AVERAGE_REMARKS_SELECTOR);
+    
+    if (totalAverageRemarksCell && totalAverageRemarksCell.textContent.trim() === '') {
+        totalAverageRemarksCell.textContent = '—';
+    }
 };
 
 /**
@@ -341,7 +429,7 @@ const createSubjectRow = () => {
     row.appendChild(averageCell);
 
     const remarksCell = document.createElement('td');
-    remarksCell.className = 'text-start';
+    remarksCell.className = 'text-center';
     remarksCell.innerHTML =
         '<span class="badge rounded-pill text-warning-emphasis bg-warning-subtle fw-medium">Incomplete</span>';
     row.appendChild(remarksCell);
@@ -1077,6 +1165,9 @@ const initAddSubjectControl = () => {
  * @author Cesar
  */
 const initGradeEvaluator = () => {
+    // Set default/fallback value for Total Average Remarks before any calculations
+    setDefaultTotalAverageRemarks();
+
     updateAllAverages();
     updateAllClearButtons();
     initAddSubjectControl();

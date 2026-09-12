@@ -57,7 +57,6 @@ body {
 
 .ge-card > .card-header {
     position: relative;
-    padding: 1.1rem 1.25rem !important;
     color: #fff;
     background: #182230 !important;
     border: 0 !important;
@@ -541,6 +540,9 @@ body {
 }
 
 @media (min-width: 768px) {
+    .ge-card > .card-header {
+        padding: 1.25rem 1.5rem !important;
+    }
     .ge-card > .card-body {
         padding: 1.5rem !important;
     }

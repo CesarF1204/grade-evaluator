@@ -1220,6 +1220,8 @@ const initAddSubjectControl = () => {
     subjectsBody.addEventListener('focusin', (event) => {
         if (event.target.matches(SUBJECT_NAME_INPUT_SELECTOR)) {
             event.target.dataset.geTouched = 'true';
+            // Store the original value to detect actual changes before showing toast
+            event.target.dataset.originalValue = event.target.value.trim();
         }
     });
 
@@ -1229,7 +1231,7 @@ const initAddSubjectControl = () => {
     subjectsBody.addEventListener('focusout', (event) => {
         if (event.target.matches(SUBJECT_NAME_INPUT_SELECTOR)) {
             const nameInput = event.target;
-            const previousValue = nameInput.value.trim();
+            const originalValue = nameInput.dataset.originalValue || '';
             commitSubjectNameValue(nameInput);
             const newValue = nameInput.value.trim();
             const isValid = validateSubjectName(nameInput, true);
@@ -1237,8 +1239,8 @@ const initAddSubjectControl = () => {
             // blocks its row's grade fields again
             const row = nameInput.closest(SUBJECT_ROW_SELECTOR);
             if (row) syncGradeInputsState(row);
-            // Show toast when the subject name is successfully updated (valid and non-empty)
-            if (isValid && newValue) {
+            // Show toast only when the subject name actually changed (valid, non-empty, and different from original)
+            if (isValid && newValue && newValue !== originalValue) {
                 showSuccessToast(`Subject name updated to "${newValue}".`);
             }
         }
@@ -1264,10 +1266,12 @@ const initAddSubjectControl = () => {
             event.preventDefault();
             const nameInput = event.target;
             nameInput.dataset.geTouched = 'true';
+            const originalValue = nameInput.dataset.originalValue || '';
             commitSubjectNameValue(nameInput);
             if (validateSubjectName(nameInput, true)) {
                 const newValue = nameInput.value.trim();
-                if (newValue) {
+                // Show toast only when the subject name actually changed (non-empty and different from original)
+                if (newValue && newValue !== originalValue) {
                     showSuccessToast(`Subject name updated to "${newValue}".`);
                 }
                 const row = nameInput.closest(SUBJECT_ROW_SELECTOR);

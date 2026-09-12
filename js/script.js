@@ -36,11 +36,13 @@ const CONFIRM_MODAL_BODY_SELECTOR = '#ge_confirm_modal_body';
 const CONFIRM_MODAL_ACTION_SELECTOR = '#ge_confirm_modal_action';
 const LIVE_REGION_SELECTOR = '#ge_live_region';
 const PASSING_GRADE = 75;
+
 /**
  * Cached reference to the Total Average Remarks cell in the footer.
  * Set once on init and reused for all subsequent updates.
  */
 let totalAverageRemarksCell = null;
+
 /**
  * Strict grade format: 0-100, whole or with up to 2 decimal places.
  * Rejects negatives, >100, >2 decimals, letters, symbols, and
@@ -50,6 +52,7 @@ const GRADE_PATTERN = /^\d{1,3}(?:\.\d{1,2})?$/;
 const GRADE_INVALID_MESSAGE = 'Enter a grade from 0 to 100, with up to 2 decimal places.';
 const NAME_REQUIRED_MESSAGE = 'Subject name is required';
 const GRADE_BLOCKED_TITLE = 'Enter the subject name first';
+
 /**
  * DOCU: Message shown when two subject rows share the same name. <br>
  * Kept in one constant so inline titles, toasts, and grade tooltips stay in sync. <br>
@@ -59,6 +62,137 @@ const GRADE_BLOCKED_TITLE = 'Enter the subject name first';
 const NAME_DUPLICATE_MESSAGE = 'Subject name is already taken. Please choose a different name.';
 const GRADE_DUPLICATE_TITLE = 'Resolve the duplicate subject name first';
 const NAME_REQUIRED_ANNOUNCEMENT = 'Please enter a subject name before entering a grade.';
+
+/**
+ * DOCU: Tracks the specific subject-name input the user most recently interacted
+ * with (focusin / input / focusout). Stored as the element instance (not its
+ * value) so duplicate subject names still resolve to the correct row.
+ * Also owns the monotonically increasing row-id / interaction-sequence counters.
+ * Last Updated Date: September 13, 2026
+ * @author Cesar
+ */
+let lastInteractedNameInput = null;
+let subjectRowIdCounter = 0;
+let subjectInteractionSequence = 0;
+
+/**
+ * DOCU: Assigns a stable identity to a subject-name input so duplicate names can
+ * still be told apart by row/instance (never by value alone).
+ * Last Updated Date: September 13, 2026
+ * @function ensureSubjectRowId
+ * @param {object} nameInput - the subject name input to tag
+ * @returns {string} the stable row id
+ * @author Cesar
+ */
+const ensureSubjectRowId = (nameInput) => {
+    if (!nameInput) return '';
+    if (!nameInput.dataset.geRowId) {
+        subjectRowIdCounter += 1;
+        nameInput.dataset.geRowId = `ge-row-${subjectRowIdCounter}`;
+    }
+    return nameInput.dataset.geRowId;
+};
+
+/**
+ * DOCU: Records the user's most recent interaction with a subject-name input.
+ * Stores the element instance plus a monotonically increasing sequence number
+ * so the Add Subject guard can prefer the actually-edited row over the first
+ * DOM match when several rows share a name or several rows are invalid.
+ * Last Updated Date: September 13, 2026
+ * @function markSubjectNameInteraction
+ * @param {object} nameInput - the subject name input that was interacted with
+ * @author Cesar
+ */
+const markSubjectNameInteraction = (nameInput) => {
+    if (!nameInput) return;
+    ensureSubjectRowId(nameInput);
+    subjectInteractionSequence += 1;
+    nameInput.dataset.geSeq = String(subjectInteractionSequence);
+    lastInteractedNameInput = nameInput;
+};
+
+/**
+ * DOCU: Collects every subject-name input that currently blocks an Add Subject
+ * action: empty names plus any input failing subject-name validation
+ * (duplicates) or still carrying the invalid/duplicate visual flags.
+ * Last Updated Date: September 13, 2026
+ * @function getInvalidSubjectNameInputs
+ * @param {object} subjectsBody - the subjects <tbody> to scan
+ * @returns {object[]} the invalid subject-name inputs in DOM order
+ * @author Cesar
+ */
+const getInvalidSubjectNameInputs = (subjectsBody) => {
+    if (!subjectsBody) return [];
+    const nameInputs = Array.from(subjectsBody.querySelectorAll(SUBJECT_NAME_INPUT_SELECTOR));
+    return nameInputs.filter((nameInput) => {
+        if (nameInput.value.trim() === '') return true;
+        if (nameInput.dataset.geDuplicate === 'true') return true;
+        if (nameInput.classList.contains('is-invalid-name')) return true;
+        return !validateSubjectName(nameInput, false);
+    });
+};
+
+/**
+ * DOCU: Picks which invalid subject-name input the Add Subject guard should
+ * focus: the user's most recently interacted invalid instance when it is still
+ * invalid, otherwise the invalid input with the highest interaction sequence,
+ * otherwise the first invalid input in DOM order. Identity (not value) decides,
+ * so a newly added duplicate wins over the original row with the same name.
+ * Last Updated Date: September 13, 2026
+ * @function pickRelevantInvalidSubjectInput
+ * @param {object[]} invalidInputs - invalid subject-name inputs in DOM order
+ * @returns {object|null} the input instance to focus
+ * @author Cesar
+ */
+const pickRelevantInvalidSubjectInput = (invalidInputs) => {
+    if (!invalidInputs || invalidInputs.length === 0) return null;
+    const connected = invalidInputs.filter((input) => input.isConnected);
+    if (connected.length === 0) return invalidInputs[0] || null;
+    if (lastInteractedNameInput
+        && lastInteractedNameInput.isConnected
+        && connected.includes(lastInteractedNameInput)) {
+        return lastInteractedNameInput;
+    }
+    let mostRecent = null;
+    let mostRecentSeq = -1;
+    connected.forEach((input) => {
+        const seq = Number(input.dataset.geSeq || 0);
+        if (seq > mostRecentSeq) {
+            mostRecentSeq = seq;
+            mostRecent = input;
+        }
+    });
+    if (mostRecentSeq > 0 && mostRecent) return mostRecent;
+    return connected[0];
+};
+
+/**
+ * DOCU: Focuses one invalid subject-name input instance for the Add Subject
+ * guard while keeping its error state visible. Empty names reuse the required
+ * error flow; duplicates re-assert the duplicate styling, grade blocking, toast,
+ * and announcement on that exact instance.
+ * Last Updated Date: September 13, 2026
+ * @function focusInvalidSubjectInput
+ * @param {object} nameInput - the exact subject-name input instance to focus
+ * @author Cesar
+ */
+const focusInvalidSubjectInput = (nameInput) => {
+    if (!nameInput) return;
+    markSubjectNameInteraction(nameInput);
+    const row = nameInput.closest(SUBJECT_ROW_SELECTOR);
+    if (nameInput.value.trim() === '') {
+        focusSubjectNameError(row);
+        return;
+    }
+    nameInput.dataset.geTouched = 'true';
+    showNameError(nameInput, NAME_DUPLICATE_MESSAGE);
+    nameInput.dataset.geDuplicate = 'true';
+    if (row) syncGradeInputsState(row);
+    showErrorToast(NAME_DUPLICATE_MESSAGE);
+    nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    nameInput.focus({ preventScroll: true });
+    announceMessage('Please enter a subject name for every existing subject before adding another one.');
+};
 
 /**
  * DOCU: This function is used to check whether a raw grade string is a <br>
@@ -1228,6 +1362,7 @@ const focusSubjectNameError = (row) => {
 
     // Mark touched so the blur validation keeps the error until a name exists
     nameInput.dataset.geTouched = 'true';
+    markSubjectNameInteraction(nameInput);
     showNameError(nameInput, NAME_REQUIRED_MESSAGE);
     announceMessage(NAME_REQUIRED_ANNOUNCEMENT);
 
@@ -1418,17 +1553,20 @@ const initAddSubjectControl = () => {
     const subjectsBody = document.querySelector(SUBJECTS_BODY_SELECTOR);
     if (!addButton || !subjectsBody) return;
 
+    // Tag every existing row with a stable id up front so duplicates can be
+    // told apart by instance from the very first Add Subject click.
+    subjectsBody.querySelectorAll(SUBJECT_NAME_INPUT_SELECTOR).forEach(ensureSubjectRowId);
+
     addButton.addEventListener('click', () => {
-        // Guard: every existing subject must have a name before another
-        // row can be added (works no matter how many subjects exist)
-        const invalidInput = guardExistingSubjectNames(subjectsBody);
-        if (invalidInput) {
-            // Scroll the first invalid field into view, then focus it so
-            // the user can immediately type the missing subject name
-            invalidInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            invalidInput.focus({ preventScroll: true });
-            announceMessage('Please enter a subject name for every existing subject before adding another one.');
-            return; // new subject is NOT added until the name is provided
+        // Guard: when any subject field currently has a validation error
+        // (empty name or duplicate name), do NOT append another row. Focus
+        // the specific input instance tied to the user's most recent
+        // interaction so duplicate names resolve to the correct row.
+        const invalidInputs = getInvalidSubjectNameInputs(subjectsBody);
+        if (invalidInputs.length > 0) {
+            const relevantInput = pickRelevantInvalidSubjectInput(invalidInputs);
+            if (relevantInput) focusInvalidSubjectInput(relevantInput);
+            return; // new subject is NOT added until the error is resolved
         }
 
         const lastRow = subjectsBody.querySelector('tr:last-of-type');
@@ -1444,6 +1582,8 @@ const initAddSubjectControl = () => {
         newRow.addEventListener('animationend', () => newRow.classList.remove('ge-row-new'), { once: true });
 
         const nameInput = newRow.querySelector(SUBJECT_NAME_INPUT_SELECTOR);
+        ensureSubjectRowId(nameInput);
+        markSubjectNameInteraction(nameInput);
         nameInput.focus();
 
         // Sync the Clear button state so its wrapper span gets the
@@ -1461,10 +1601,13 @@ const initAddSubjectControl = () => {
     });
 
     // Mark name inputs as touched on first focus so empty-on-blur errors
-    // only fire for fields the user actually interacted with
+    // only fire for fields the user actually interacted with. Also record
+    // the exact input instance (not just its value) so the Add Subject
+    // guard can return focus to the edited row when names are duplicated.
     subjectsBody.addEventListener('focusin', (event) => {
         if (event.target.matches(SUBJECT_NAME_INPUT_SELECTOR)) {
             event.target.dataset.geTouched = 'true';
+            markSubjectNameInteraction(event.target);
             // Store the original value to detect actual changes before showing toast
             event.target.dataset.originalValue = event.target.value.trim();
         }
@@ -1477,6 +1620,7 @@ const initAddSubjectControl = () => {
     subjectsBody.addEventListener('focusout', (event) => {
         if (event.target.matches(SUBJECT_NAME_INPUT_SELECTOR)) {
             const nameInput = event.target;
+            markSubjectNameInteraction(nameInput);
             const originalValue = nameInput.dataset.originalValue || '';
             commitSubjectNameValue(nameInput);
             const newValue = nameInput.value.trim();
@@ -1498,6 +1642,7 @@ const initAddSubjectControl = () => {
     // flags are owned by this global pass.
     subjectsBody.addEventListener('input', (event) => {
         if (event.target.matches(SUBJECT_NAME_INPUT_SELECTOR)) {
+            markSubjectNameInteraction(event.target);
             sanitizeSubjectNameLive(event.target);
             validateSubjectName(event.target, false);
             refreshDuplicateSubjectStates();
@@ -1511,6 +1656,7 @@ const initAddSubjectControl = () => {
             event.preventDefault();
             const nameInput = event.target;
             nameInput.dataset.geTouched = 'true';
+            markSubjectNameInteraction(nameInput);
             const originalValue = nameInput.dataset.originalValue || '';
             commitSubjectNameValue(nameInput);
             if (validateSubjectName(nameInput, true)) {

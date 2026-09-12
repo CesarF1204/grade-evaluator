@@ -1,0 +1,129 @@
+/* ============================================
+   Grade Evaluator - minimal custom CSS
+   (everything else is Bootstrap utility classes)
+   ============================================ */
+
+/* Column proportions Bootstrap utilities can't set */
+.ge-col-q,
+.ge-col-final {
+    width: 84px;
+}
+
+.ge-col-remarks {
+    width: 120px;
+}
+
+/* Comfortable, consistent cell padding / row height */
+.ge-table > thead > tr > th,
+.ge-table > tbody > tr > td,
+.ge-table > tfoot > tr > td {
+    padding: 0.6rem 0.5rem;
+    font-size: 0.925rem;
+}
+
+/* Quarter grade inputs: light, editable-looking fields that blend into
+   the report-card cells but clearly invite input */
+.ge-input {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: auto;
+    background-color: #fff;
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+    font-variant-numeric: tabular-nums;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Subtle hover cue on grade cells */
+.ge-input:hover:not(:focus) {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.ge-input:focus {
+    background-color: #fff;
+    border-color: var(--bs-primary);
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Editable subject names: look like inputs until focused, then like fields */
+.ge-name-input {
+    min-width: 7rem;
+    background-color: transparent;
+    border-color: transparent;
+    transition: border-color 0.15s ease-in-out, background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.ge-name-input:hover:not(:focus) {
+    background-color: #fff;
+    border-color: var(--bs-primary);
+}
+
+.ge-name-input:focus {
+    background-color: #fff;
+    border-color: var(--bs-primary);
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.ge-name-input::placeholder {
+    color: var(--bs-secondary-color);
+    font-style: italic;
+}
+
+/* Hide number spinners for a clean report-card look */
+.ge-input::-webkit-outer-spin-button,
+.ge-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Keep the range placeholder fully visible inside the narrow cells */
+.ge-input::placeholder {
+    color: var(--bs-secondary-color);
+    font-size: 0.75rem;
+    overflow: hidden;
+    text-overflow: clip;
+}
+
+/* Keep the field consistent across browsers (type is text + inputmode) */
+.ge-input {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* Validation feedback uses border color + tooltip only:
+   suppress Bootstrap's built-in check/cross icons on grade inputs */
+.ge-input.is-valid,
+.ge-input.is-invalid {
+    background-image: none;
+    padding-right: 0.25rem; /* match the px-1 utility used on grade inputs */
+}
+
+/* ============================================================
+   "+" add-row control: its whole row is hidden until the table
+   is hovered; always visible on touch devices and small screens.
+   ============================================================ */
+.ge-add-tbody > tr {
+    display: none;
+}
+
+/* Reveal the row when the table is hovered */
+.ge-table:hover .ge-add-tbody > tr {
+    display: table-row;
+}
+
+/* Touch devices and small screens: keep the control discoverable */
+@media (hover: none), (max-width: 767.98px) {
+    .ge-add-tbody > tr {
+        display: table-row;
+    }
+
+    .ge-add-btn {
+        opacity: 1;
+    }
+}
+
+
+

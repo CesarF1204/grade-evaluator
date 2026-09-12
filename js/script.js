@@ -42,6 +42,9 @@ const PASSING_GRADE = 75;
  */
 const GRADE_PATTERN = /^\d{1,3}(?:\.\d{1,2})?$/;
 const GRADE_INVALID_MESSAGE = 'Enter a grade from 0 to 100, with up to 2 decimal places.';
+const NAME_REQUIRED_MESSAGE = 'Subject name is required';
+const GRADE_BLOCKED_TITLE = 'Enter the subject name first';
+const NAME_REQUIRED_ANNOUNCEMENT = 'Please enter a subject name before entering a grade.';
 
 /**
  * DOCU: This function is used to check whether a raw grade string is a <br>
@@ -292,13 +295,6 @@ const updateAllAverages = () => {
 };
 
 /**
- * DOCU: This section covers the dynamic subject rows and the "+" <br>
- * add-row control underneath the last subject row. <br>
- * The control lives in its own <tbody> in the markup, so it always <br>
- * stays below the newest last row. <br>
- */
-
-/**
  * DOCU: This function is used to build a new, blank subject row that <br>
  * matches the existing table structure. <br>
  * It creates the subject name field, four empty quarter inputs, the <br>
@@ -351,6 +347,10 @@ const createSubjectRow = () => {
     row.appendChild(remarksCell);
 
     row.appendChild(createActionCell());
+
+    // A brand-new row has no subject name yet, so its grade fields
+    // start blocked until the user enters a valid name
+    syncGradeInputsState(row);
 
     return row;
 };
@@ -705,7 +705,7 @@ const validateSubjectName = (nameInput, showError) => {
         if (touched && showError) {
             nameInput.classList.add('is-invalid-name');
             nameInput.setAttribute('aria-invalid', 'true');
-            nameInput.title = 'Subject name is required';
+            nameInput.title = NAME_REQUIRED_MESSAGE;
             return false;
         }
         nameInput.classList.remove('is-invalid-name');
@@ -796,6 +796,151 @@ const showNameError = (nameInput, message) => {
 };
 
 /**
+ * DOCU: This function is used to check whether an element is fully visible <br>
+ * in the current viewport. Used before focusing the Subject Name field so an <br>
+ * off-screen field is scrolled into view before it takes the cursor. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function isElementFullyVisible
+ * @param {object} element - the element to check
+ * @returns {boolean} true when the element is fully inside the viewport
+ * @author Cesar
+ */
+const isElementFullyVisible = (element) => {
+    const rect = element.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    return rect.top >= 0
+        && rect.left >= 0
+        && rect.bottom <= viewportHeight
+        && rect.right <= viewportWidth;
+};
+
+/**
+ * DOCU: This function is used to check whether one subject row has a valid <br>
+ * Subject Name: a value that is not empty after trimming. Whitespace-only <br>
+ * names are treated as empty, so grades stay blocked until a real name exists. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function hasValidSubjectName
+ * @param {object} row - the subject <tr> to check
+ * @returns {boolean} true when the row's Subject Name is valid
+ * @author Cesar
+ */
+const hasValidSubjectName = (row) => {
+    const nameInput = row && row.querySelector(SUBJECT_NAME_INPUT_SELECTOR);
+    return !!nameInput && nameInput.value.trim() !== '';
+};
+
+/**
+ * DOCU: This function is used to report the "Subject name is required" error <br>
+ * on a row's Subject Name field and move the user into it. The field is <br>
+ * focused right away when it is visible; when it is not, it is scrolled <br>
+ * into view first and then focused, and a screen-reader announcement <br>
+ * explains what is needed (same feedback pattern as the Add Subject guard). <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function focusSubjectNameError
+ * @param {object} row - the subject <tr> whose Subject Name should be reported
+ * @author Cesar
+ */
+const focusSubjectNameError = (row) => {
+    const nameInput = row && row.querySelector(SUBJECT_NAME_INPUT_SELECTOR);
+    if (!nameInput) return;
+
+    // Mark touched so the blur validation keeps the error until a name exists
+    nameInput.dataset.geTouched = 'true';
+    showNameError(nameInput, NAME_REQUIRED_MESSAGE);
+    announceMessage(NAME_REQUIRED_ANNOUNCEMENT);
+
+    if (isElementFullyVisible(nameInput)) {
+        nameInput.focus();
+        return;
+    }
+
+    // Off-screen: scroll the field into view first, then focus it in place
+    nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    nameInput.focus({ preventScroll: true });
+};
+
+/**
+ * DOCU: This function is used to block or unblock one subject row's four <br>
+ * grade fields based on its Subject Name. Blocked fields are read-only, <br>
+ * removed from the tab order, marked `aria-disabled`, get a not-allowed <br>
+ * cursor + muted look, and a tooltip explains why. Once the name becomes <br>
+ * valid, the fields are restored to normal editing immediately. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function syncGradeInputsState
+ * @param {object} row - the subject <tr> whose grade fields should be synced
+ * @author Cesar
+ */
+const syncGradeInputsState = (row) => {
+    if (!row) return;
+    const blocked = !hasValidSubjectName(row);
+
+    row.querySelectorAll(GRADE_INPUT_SELECTOR).forEach((gradeInput) => {
+        gradeInput.readOnly = blocked;
+        gradeInput.tabIndex = blocked ? -1 : 0;
+        gradeInput.classList.toggle('ge-input-blocked', blocked);
+        if (blocked) {
+            gradeInput.setAttribute('aria-disabled', 'true');
+            gradeInput.title = GRADE_BLOCKED_TITLE;
+        } else {
+            gradeInput.removeAttribute('aria-disabled');
+            gradeInput.title = 'Enter grade';
+        }
+    });
+};
+
+/**
+ * DOCU: This function is used to apply the blocked/unblocked grade state to <br>
+ * every subject row. Used at startup so server-rendered rows with an empty <br>
+ * Subject Name get their grade fields blocked from the very beginning. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function updateAllGradeInputsState
+ * @author Cesar
+ */
+const updateAllGradeInputsState = () => {
+    document.querySelectorAll(SUBJECT_ROWS_SELECTOR).forEach(syncGradeInputsState);
+};
+
+/**
+ * DOCU: This function is used to prevent any grade editing while a row's <br>
+ * Subject Name is empty. Clicks, keyboard focus, and typing on a blocked <br>
+ * grade field are intercepted: the attempt is cancelled, the required-name <br>
+ * error is shown on the Subject Name field, and the user is scrolled and <br>
+ * focused into it. Works for new and existing rows through event delegation. <br>
+ * Last Updated Date: September 12, 2026 <br>
+ * @function initSubjectNameRequiredGuard
+ * @author Cesar
+ */
+const initSubjectNameRequiredGuard = () => {
+    const subjectsBody = document.querySelector(SUBJECTS_BODY_SELECTOR);
+    if (!subjectsBody) return;
+
+    // Shared redirect: an attempted interaction with a blocked grade field
+    // reports the required Subject Name and moves the user into it
+    const redirectBlockedGradeAttempt = (event) => {
+        if (!event.target.matches(GRADE_INPUT_SELECTOR)) return;
+
+        const row = event.target.closest(SUBJECT_ROW_SELECTOR);
+        if (row && hasValidSubjectName(row)) return;
+
+        event.preventDefault();
+        focusSubjectNameError(row);
+    };
+
+    // Mouse/touch: preventDefault stops the grade field from ever taking focus
+    subjectsBody.addEventListener('pointerdown', redirectBlockedGradeAttempt);
+
+    // Fallback for programmatic / edge-case focus: hand focus to the name field
+    subjectsBody.addEventListener('focusin', redirectBlockedGradeAttempt);
+
+    // Keyboard fallback: blocked fields cannot be typed into (read-only), but
+    // any stray key press is cancelled and reported the same way
+    subjectsBody.addEventListener('keydown', (event) => {
+        if (event.target.matches(GRADE_INPUT_SELECTOR)) redirectBlockedGradeAttempt(event);
+    });
+};
+
+/**
  * DOCU: This function is used to validate every existing subject name before <br>
  * a new subject row can be added. <br>
  * Any empty Subject Name is marked as invalid; valid names get their error <br>
@@ -812,7 +957,7 @@ const guardExistingSubjectNames = (subjectsBody) => {
 
     nameInputs.forEach((nameInput) => {
         if (!nameInput.value.trim()) {
-            showNameError(nameInput, 'Subject name is required');
+            showNameError(nameInput, NAME_REQUIRED_MESSAGE);
             if (!firstInvalid) firstInvalid = nameInput;
         } else {
             // Valid name: store it trimmed and clear any lingering error
@@ -884,6 +1029,10 @@ const initAddSubjectControl = () => {
         if (event.target.matches(SUBJECT_NAME_INPUT_SELECTOR)) {
             commitSubjectNameValue(event.target);
             validateSubjectName(event.target, true);
+            // Re-sync grade access: a name committed to whitespace-only/empty
+            // blocks its row's grade fields again
+            const row = event.target.closest(SUBJECT_ROW_SELECTOR);
+            if (row) syncGradeInputsState(row);
         }
     });
 
@@ -893,6 +1042,10 @@ const initAddSubjectControl = () => {
         if (event.target.matches(SUBJECT_NAME_INPUT_SELECTOR)) {
             sanitizeSubjectNameLive(event.target);
             validateSubjectName(event.target, false);
+            // Immediately unblock (or re-block) the row's grade fields as the
+            // name becomes valid/empty — whitespace-only counts as empty
+            const row = event.target.closest(SUBJECT_ROW_SELECTOR);
+            if (row) syncGradeInputsState(row);
         }
     });
 
@@ -928,6 +1081,12 @@ const initGradeEvaluator = () => {
     updateAllClearButtons();
     initAddSubjectControl();
     initRowActions();
+
+    // Subject Name must come first: block grade fields of every row whose
+    // name is empty (server-rendered rows included) and intercept any grade
+    // attempts with a clear required-name error + focus redirect
+    initSubjectNameRequiredGuard();
+    updateAllGradeInputsState();
 
     // Event delegation: one listener handles all quarter inputs,
     // including those in dynamically added rows. While typing, the value

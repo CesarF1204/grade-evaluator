@@ -246,6 +246,18 @@
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
 }
 
+/* Grade fields blocked until the Subject Name is entered: read-only +
+   removed from tab order, muted look + not-allowed cursor (same
+   "explains why" feedback pattern as the disabled Clear button) */
+.ge-input.ge-input-blocked {
+    cursor: not-allowed;
+    background-color: var(--bs-tertiary-bg);
+}
+
+.ge-input.ge-input-blocked:hover:not(:focus) {
+    border-color: var(--bs-border-color);
+}
+
 /* Screen-reader-only live region for add-subject feedback */
 .ge-visually-hidden {
     position: absolute;

@@ -917,6 +917,73 @@ const dismissToast = (toast) => {
 };
 
 /**
+ * DOCU: This function is used to display an error toast notification using <br>
+ * the application's design system (error red palette, DM Sans type, soft <br>
+ * shadow, rounded corner) and announces its message to assistive technology <br>
+ * through the shared #ge live region. The toast slides in from the right, <br>
+ * holds for ~3.5s, then fades/slides out and is removed from the DOM. A manual <br>
+ * close (X) button is provided for users who want to dismiss early. <br>
+ * Last Updated Date: September 13, 2026 <br>
+ * @function showErrorToast
+ * @param {string} message - the error message to display
+ * @author Cesar
+ */
+const showErrorToast = (message) => {
+    if (!message) return;
+
+    const container = document.querySelector(TOAST_CONTAINER_SELECTOR);
+    if (!container) return;
+
+    // Surface the feedback for screen readers through the existing live region
+    announceMessage(message);
+
+    const toast = document.createElement('div');
+    toast.className = 'ge-toast ge-toast-error ge-toast-enter';
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+
+    const icon = document.createElement('span');
+    icon.className = 'ge-toast-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">' +
+        '<path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>' +
+        '</svg>';
+
+    const body = document.createElement('div');
+    body.className = 'ge-toast-body';
+    body.textContent = message;
+
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'ge-toast-close';
+    closeButton.setAttribute('aria-label', 'Dismiss notification');
+    closeButton.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">' +
+        '<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>' +
+        '</svg>';
+    closeButton.addEventListener('click', () => dismissToast(toast));
+
+    toast.appendChild(icon);
+    toast.appendChild(body);
+    toast.appendChild(closeButton);
+    container.appendChild(toast);
+
+    // Force reflow so the enter animation restarts cleanly for repeated toasts
+    // with the same message, then swap to the visible state
+    void toast.offsetWidth;
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            toast.classList.remove('ge-toast-enter');
+            toast.classList.add('ge-toast-visible');
+        });
+    });
+
+    const dismissTimeout = window.setTimeout(() => dismissToast(toast), TOAST_VISIBLE_DURATION);
+    toast.__geDismissTimeout = dismissTimeout;
+};
+
+/**
  * DOCU: This function is used to validate one subject name input: the name <br>
  * is required (after the user has touched the field) and must be unique <br>
  * among the other subject rows. <br>
@@ -955,8 +1022,8 @@ const validateSubjectName = (nameInput, showError) => {
     if (isDuplicate && showError) {
         nameInput.classList.add('is-invalid-name');
         nameInput.setAttribute('aria-invalid', 'true');
-        nameInput.title = 'This subject name is already in the list';
-        announceMessage('This subject name is already in the list. Please choose a different name.');
+        nameInput.title = 'Subject name is already taken. Please choose a different name.';
+        showErrorToast('Subject name is already taken. Please choose a different name.');
         return false;
     }
 
@@ -1104,7 +1171,9 @@ const focusSubjectNameError = (row) => {
  */
 const syncGradeInputsState = (row) => {
     if (!row) return;
-    const blocked = !hasValidSubjectName(row);
+    const nameInput = row.querySelector(SUBJECT_NAME_INPUT_SELECTOR);
+    const hasNameError = nameInput && nameInput.classList.contains('is-invalid-name');
+    const blocked = !hasValidSubjectName(row) || hasNameError;
 
     row.querySelectorAll(GRADE_INPUT_SELECTOR).forEach((gradeInput) => {
         gradeInput.readOnly = blocked;
@@ -1112,7 +1181,7 @@ const syncGradeInputsState = (row) => {
         gradeInput.classList.toggle('ge-input-blocked', blocked);
         if (blocked) {
             gradeInput.setAttribute('aria-disabled', 'true');
-            gradeInput.title = GRADE_BLOCKED_TITLE;
+            gradeInput.title = hasNameError ? 'Subject name is already taken. Please choose a different name.' : GRADE_BLOCKED_TITLE;
         } else {
             gradeInput.removeAttribute('aria-disabled');
             gradeInput.title = 'Enter grade';
@@ -1186,17 +1255,38 @@ const guardExistingSubjectNames = (subjectsBody) => {
     const nameInputs = [...subjectsBody.querySelectorAll(SUBJECT_NAME_INPUT_SELECTOR)];
     let firstInvalid = null;
 
+    // First pass: check for empty names
     nameInputs.forEach((nameInput) => {
         if (!nameInput.value.trim()) {
             showNameError(nameInput, NAME_REQUIRED_MESSAGE);
             if (!firstInvalid) firstInvalid = nameInput;
+        }
+    });
+
+    // If there are empty names, return the first invalid one without checking duplicates
+    if (firstInvalid) return firstInvalid;
+
+    // Second pass: check for duplicate names (case-insensitive, trimmed)
+    const seenNames = new Map(); // lowercase name -> first input with that name
+    nameInputs.forEach((nameInput) => {
+        commitSubjectNameValue(nameInput);
+        const normalized = nameInput.value.trim().toLowerCase();
+
+        if (seenNames.has(normalized)) {
+            // Duplicate found: mark the current input as invalid
+            showNameError(nameInput, 'Subject name is already taken. Please choose a different name.');
+            showErrorToast('Subject name is already taken. Please choose a different name.');
+            if (!firstInvalid) firstInvalid = nameInput;
         } else {
-            // Valid name: store it trimmed and clear any lingering error
-            commitSubjectNameValue(nameInput);
+            seenNames.set(normalized, nameInput);
+            // Clear any lingering error for unique names
             nameInput.classList.remove('is-invalid-name');
             nameInput.removeAttribute('aria-invalid');
             nameInput.title = 'Enter the subject name';
         }
+        // Sync grade inputs state based on validation result
+        const row = nameInput.closest(SUBJECT_ROW_SELECTOR);
+        if (row) syncGradeInputsState(row);
     });
 
     return firstInvalid;

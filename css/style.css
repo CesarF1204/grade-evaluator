@@ -469,7 +469,8 @@ body {
     color: var(--ge-blue) !important;
 }
 
-.ge-name-input.is-invalid-name {
+.ge-name-input.is-invalid-name,
+.ge-name-input.is-invalid-name:hover:not(:focus) {
     border-color: var(--ge-red);
     background: var(--ge-red-soft);
     box-shadow: 0 0 0 0.18rem rgba(180, 35, 24, 0.13);
@@ -875,6 +876,23 @@ body {
     color: var(--ge-ink);
     background: rgba(23, 107, 77, 0.1);
     outline: none;
+}
+
+/* Error toast variant (red color scheme) */
+.ge-toast-error {
+    color: var(--ge-red);
+    background: var(--ge-red-soft);
+    border: 1px solid rgba(180, 35, 24, 0.22);
+    border-left: 4px solid var(--ge-red);
+}
+
+.ge-toast-error .ge-toast-icon {
+    color: var(--ge-red);
+}
+
+.ge-toast-error .ge-toast-close:hover,
+.ge-toast-error .ge-toast-close:focus-visible {
+    background: rgba(180, 35, 24, 0.1);
 }
 
 /* Toast lifecycle states */

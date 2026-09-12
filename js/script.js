@@ -1201,6 +1201,10 @@ const initAddSubjectControl = () => {
         const nameInput = newRow.querySelector(SUBJECT_NAME_INPUT_SELECTOR);
         nameInput.focus();
 
+        // Sync the Clear button state so its wrapper span gets the
+        // ge-no-grades class and shows the disabled (not-allowed) cursor
+        updateClearButtonState(newRow);
+
         // Initialize the Bootstrap tooltips on the new row's action buttons
         if (window.bootstrap && bootstrap.Tooltip) {
             newRow.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {

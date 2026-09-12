@@ -22,8 +22,16 @@
         0 0.15rem 0.4rem rgba(24, 34, 48, 0.04);
 }
 
-* {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
 }
 
 body {

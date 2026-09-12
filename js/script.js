@@ -483,13 +483,16 @@ const createActionCell = () => {
  * The Average is cleared too because the required quarterly grades are no <br>
  * longer complete; updateAllAverages() then re-renders the Average cell, <br>
  * the Remarks badge, and the Total Average (blank while any subject is <br>
- * incomplete). Other subjects are never modified. <br>
- * Last Updated Date: September 12, 2026 <br>
+ * incomplete). Other subjects are never modified. A success toast naming <br>
+ * the affected subject is shown once the reset completes. <br>
+ * Last Updated Date: September 13, 2026 <br>
  * @function resetSubjectRow
  * @param {object} row - the subject <tr> whose grades should be cleared
  * @author Cesar
  */
 const resetSubjectRow = (row) => {
+    const subjectName = getSubjectName(row);
+
     row.querySelectorAll(GRADE_INPUT_SELECTOR).forEach((input) => {
         input.value = '';
         input.classList.remove('is-valid', 'is-invalid');
@@ -498,6 +501,11 @@ const resetSubjectRow = (row) => {
 
     updateClearButtonState(row);
     updateAllAverages();
+
+    const toastMessage = subjectName && subjectName !== 'this subject'
+        ? `Grades for ${subjectName} reset successfully.`
+        : 'Grade values reset successfully.';
+    showSuccessToast(toastMessage);
 };
 
 /**
@@ -576,8 +584,9 @@ const updateAllClearButtons = () => {
  * Tooltips attached to its action buttons are disposed first (preventing <br>
  * orphaned tooltip instances), then the row is deleted. Other subjects are <br>
  * never touched, and the Total Average is recalculated per the existing <br>
- * rules after the row is gone. <br>
- * Last Updated Date: September 12, 2026 <br>
+ * rules after the row is gone. A success toast confirms the removal once <br>
+ * the row is actually gone. <br>
+ * Last Updated Date: September 13, 2026 <br>
  * @function deleteSubjectRow
  * @param {object} row - the subject <tr> to remove
  * @author Cesar
@@ -592,6 +601,7 @@ const deleteSubjectRow = (row) => {
 
     row.remove();
     updateAllAverages();
+    showSuccessToast('Subject removed successfully.');
 };
 
 /**
@@ -775,6 +785,98 @@ const announceMessage = (message) => {
     liveRegion.textContent = '';
     // Repopulate on the next tick so repeated identical messages re-announce
     window.setTimeout(() => { liveRegion.textContent = message; }, 50);
+};
+
+/**
+ * DOCU: This function is used to show a brief, self-dismissing success toast
+ * notification in the top-right corner of the viewport. The toast reuses the
+ * application's design system (success green palette, DM Sans type, soft
+ * shadow, rounded corner) and announces its message to assistive technology
+ * through the shared #ge live region. Each call creates a single toast;
+ * rapid repeated calls produce a vertical stack of distinct toasts that
+ * respect one another. The toast slides in from the right, holds for ~3.5s,
+ * then fades/slides out and is removed from the DOM. A manual close (X)
+ * button is provided for users who want to dismiss early. <br>
+ * Last Updated Date: September 13, 2026 <br>
+ * @function showSuccessToast
+ * @param {string} message - the success message to display
+ * @author Cesar
+ */
+const TOAST_CONTAINER_SELECTOR = '#ge_toast_container';
+const TOAST_VISIBLE_DURATION = 3500;
+const TOAST_ANIMATION_DURATION = 320;
+
+const showSuccessToast = (message) => {
+    if (!message) return;
+
+    const container = document.querySelector(TOAST_CONTAINER_SELECTOR);
+    if (!container) return;
+
+    // Surface the feedback for screen readers through the existing live region
+    announceMessage(message);
+
+    const toast = document.createElement('div');
+    toast.className = 'ge-toast ge-toast-enter';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+
+    const icon = document.createElement('span');
+    icon.className = 'ge-toast-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">' +
+        '<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>' +
+        '</svg>';
+
+    const body = document.createElement('div');
+    body.className = 'ge-toast-body';
+    body.textContent = message;
+
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'ge-toast-close';
+    closeButton.setAttribute('aria-label', 'Dismiss notification');
+    closeButton.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">' +
+        '<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>' +
+        '</svg>';
+    closeButton.addEventListener('click', () => dismissToast(toast));
+
+    toast.appendChild(icon);
+    toast.appendChild(body);
+    toast.appendChild(closeButton);
+    container.appendChild(toast);
+
+    // Force reflow so the enter animation restarts cleanly for repeated toasts
+    // with the same message, then swap to the visible state
+    void toast.offsetWidth;
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            toast.classList.remove('ge-toast-enter');
+            toast.classList.add('ge-toast-visible');
+        });
+    });
+
+    const dismissTimeout = window.setTimeout(() => dismissToast(toast), TOAST_VISIBLE_DURATION);
+    toast.__geDismissTimeout = dismissTimeout;
+};
+
+const dismissToast = (toast) => {
+    if (!toast || toast.__geDismissing) return;
+    toast.__geDismissing = true;
+
+    if (toast.__geDismissTimeout) {
+        window.clearTimeout(toast.__geDismissTimeout);
+        toast.__geDismissTimeout = null;
+    }
+
+    toast.classList.remove('ge-toast-visible');
+    toast.classList.add('ge-toast-leave');
+
+    const cleanup = () => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+    };
+    window.setTimeout(cleanup, TOAST_ANIMATION_DURATION);
 };
 
 /**

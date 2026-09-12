@@ -731,3 +731,130 @@ body {
         display: none !important;
     }
 }
+
+/* ===== Success toast notifications ===== */
+.ge-toast-container {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 1080;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    pointer-events: none;
+    max-width: calc(100vw - 2rem);
+}
+
+.ge-toast {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 16rem;
+    max-width: 24rem;
+    padding: 0.7rem 0.85rem 0.7rem 0.95rem;
+    color: var(--ge-green);
+    background: var(--ge-green-soft);
+    border: 1px solid rgba(23, 107, 77, 0.22);
+    border-left: 4px solid var(--ge-green);
+    border-radius: var(--ge-radius-md);
+    box-shadow: var(--ge-shadow);
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 0.86rem;
+    font-weight: 500;
+    line-height: 1.35;
+    pointer-events: auto;
+    transition:
+        transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.32s ease;
+}
+
+.ge-toast-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    color: var(--ge-green);
+}
+
+.ge-toast-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    word-break: break-word;
+}
+
+.ge-toast-close {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    margin-left: 0.15rem;
+    color: var(--ge-muted);
+    background: transparent;
+    border: 0;
+    border-radius: 0.35rem;
+    cursor: pointer;
+    transition: color 0.18s ease, background-color 0.18s ease;
+}
+
+.ge-toast-close:hover,
+.ge-toast-close:focus-visible {
+    color: var(--ge-ink);
+    background: rgba(23, 107, 77, 0.1);
+    outline: none;
+}
+
+/* Toast lifecycle states */
+.ge-toast-enter {
+    transform: translateX(120%);
+    opacity: 0;
+}
+
+.ge-toast-visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.ge-toast-leave {
+    transform: translateX(120%);
+    opacity: 0;
+}
+
+@media (max-width: 575.98px) {
+    .ge-toast-container {
+        top: auto;
+        bottom: 1rem;
+        right: 1rem;
+        left: auto;
+        max-width: calc(100vw - 2rem);
+    }
+
+    .ge-toast-enter {
+        transform: translateY(120%);
+    }
+
+    .ge-toast-leave {
+        transform: translateY(120%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ge-toast {
+        transition: opacity 0.18s ease;
+    }
+
+    .ge-toast-enter {
+        transform: none;
+        opacity: 0;
+    }
+
+    .ge-toast-visible {
+        transform: none;
+        opacity: 1;
+    }
+
+    .ge-toast-leave {
+        transform: none;
+        opacity: 0;
+    }
+}

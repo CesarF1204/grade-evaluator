@@ -365,6 +365,7 @@ const updateTotalAverageRemarks = (subjectRows) => {
 
     const remarks = calculateTotalAverageRemarks(subjectRows);
     totalAverageRemarksCell.textContent = remarks;
+    totalAverageRemarksCell.className = `text-center fw-bold fs-6 ge-total-remark ge-total-remark--${remarks.toLowerCase().replace('—', 'none')}`;
 };
 
 /**

@@ -1,331 +1,191 @@
-/* ============================================
-   Grade Evaluator - minimal custom CSS
-   (everything else is Bootstrap utility classes)
-   ============================================ */
-
-/* ============================================================
-   Remarks column: center the badge/remark value
-   ============================================================ */
-.ge-col-remarks {
-    width: 120px;
-}
-.ge-col-remarks td {
-    text-align: center;
-}
-
-/* Action column: compact, just wide enough for the two icon buttons */
-.ge-col-action {
-    width: 92px;
-}
-
-/* Action buttons: compact square icon buttons, comfortable on touch too */
-.ge-action-btn {
-    padding: 0.25rem 0.4rem;
-    line-height: 1;
+:root {
+    --ge-ink: #182230;
+    --ge-muted: #667085;
+    --ge-line: #dfe5ec;
+    --ge-panel: #ffffff;
+    --ge-page: #f4f7fb;
+    --ge-blue: #1769e0;
+    --ge-blue-soft: #edf4ff;
+    --ge-blue-line: #b9d2fa;
+    --ge-green: #176b4d;
+    --ge-green-soft: #e9f7ef;
+    --ge-red: #b42318;
+    --ge-red-soft: #fff0ee;
+    --ge-amber: #8a5b08;
+    --ge-amber-soft: #fff7df;
+    --ge-radius-sm: 0.5rem;
+    --ge-radius-md: 0.75rem;
+    --ge-radius-lg: 1rem;
+    --ge-focus: 0 0 0 0.22rem rgba(23, 105, 224, 0.22);
+    --ge-shadow: 0 1rem 2.5rem rgba(24, 34, 48, 0.08), 0 0.15rem 0.4rem rgba(24, 34, 48, 0.04);
 }
 
-.ge-action-btn .bi {
-    font-size: 0.9rem;
-    vertical-align: middle;
+* { box-sizing: border-box; }
+
+body {
+    min-height: 100vh;
+    color: var(--ge-ink);
+    background: var(--ge-page);
+    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.8), transparent 42%),
+        radial-gradient(circle at 100% 0%, rgba(185, 210, 250, 0.24), transparent 34rem);
+    font-family: "DM Sans", system-ui, sans-serif;
 }
 
-/* Softer, muted look for the Clear (secondary) button */
-.ge-action-reset {
-    color: var(--bs-secondary-color);
-}
-
-/* Tooltip host wrapping the Clear button: keeps the tooltip reachable
-   even while the button itself is disabled (Bootstrap-documented pattern) */
-.ge-tooltip-host {
-    vertical-align: middle;
-    cursor: help;
-}
-
-/* Disabled Clear button: not-allowed cursor with the "no grades" tooltip */
-.ge-tooltip-host.ge-no-grades {
-    cursor: not-allowed;
-}
-
-/* ============================================================
-   Action column: Reset + Delete icon buttons per subject row
-   ============================================================ */
-
-/* Comfortable, consistent cell padding / row height */
-.ge-table > thead > tr > th,
-.ge-table > tbody > tr > td,
-.ge-table > tfoot > tr > td {
-    padding: 0.6rem 0.5rem;
-    font-size: 0.925rem;
-}
-
-/* Quarter grade inputs: light, editable-looking fields that blend into
-   the report-card cells but clearly invite input */
-.ge-input {
-    width: 100%;
-    max-width: 100%;
-    margin-inline: auto;
-    background-color: #fff;
-    border-color: var(--bs-border-color);
-    color: var(--bs-body-color);
-    font-variant-numeric: tabular-nums;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-/* Subtle hover cue on grade cells */
-.ge-input:hover:not(:focus) {
-    border-color: var(--bs-primary);
-    background-color: var(--bs-primary-bg-subtle);
-}
-
-.ge-input:focus {
-    background-color: #fff;
-    border-color: var(--bs-primary);
-    outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-}
-
-/* Editable subject names: look like inputs until focused, then like fields */
-.ge-name-input {
-    min-width: 7rem;
-    background-color: transparent;
-    border-color: transparent;
-    transition: border-color 0.15s ease-in-out, background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-.ge-name-input:hover:not(:focus) {
-    background-color: #fff;
-    border-color: var(--bs-primary);
-}
-
-.ge-name-input:focus {
-    background-color: #fff;
-    border-color: var(--bs-primary);
-    outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-}
-
-.ge-name-input::placeholder {
-    color: var(--bs-secondary-color);
-    font-style: italic;
-}
-
-/* Hide number spinners for a clean report-card look */
-.ge-input::-webkit-outer-spin-button,
-.ge-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-/* Keep the range placeholder fully visible inside the narrow cells */
-.ge-input::placeholder {
-    color: var(--bs-secondary-color);
-    font-size: 0.75rem;
+.ge-card {
     overflow: hidden;
-    text-overflow: clip;
+    border: 1px solid rgba(24, 34, 48, 0.08) !important;
+    border-radius: var(--ge-radius-lg) !important;
+    box-shadow: var(--ge-shadow) !important;
 }
 
-/* Keep the field consistent across browsers (type is text + inputmode) */
-.ge-input {
-    -moz-appearance: textfield;
-    appearance: textfield;
-}
-
-/* Validation feedback uses border color + tooltip only:
-   suppress Bootstrap's built-in check/cross icons on grade inputs */
-.ge-input.is-valid,
-.ge-input.is-invalid {
-    background-image: none;
-    padding-right: 0.25rem; /* match the px-1 utility used on grade inputs */
-}
-
-/* ============================================================
-   "Add subject" control: a full-width, dashed, ghost-style
-   button that only appears while the table is hovered (or
-   focused via keyboard), keeping the layout clean at rest.
-   Always visible on touch devices and small screens where
-   hover isn't reliable.
-   ============================================================ */
-.ge-add-tbody > tr > td {
-    background-color: transparent;
-}
-
-/* Whole row hidden at rest (no reserved space); revealed when the
-   pointer is over the table, or reachable via keyboard focus */
-.ge-add-tbody > tr {
-    display: none;
-}
-
-.ge-table:hover .ge-add-tbody > tr,
-.ge-add-tbody:focus-within > tr {
-    display: table-row;
-}
-
-/* Touch devices and small screens: keep the control discoverable */
-@media (hover: none), (max-width: 767.98px) {
-    .ge-add-tbody > tr {
-        display: table-row;
-    }
-}
-
-.ge-add-btn {
-    padding: 0.55rem 1rem;
-    min-height: 44px;                 /* comfortable tap target (Apple HIG) */
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--bs-primary);
-    background-color: var(--bs-primary-bg-subtle);
-    border: 1.5px dashed var(--bs-primary);
-    border-radius: 0.625rem;
-    transition: background-color 0.15s ease-in-out,
-                border-color 0.15s ease-in-out,
-                transform 0.1s ease,
-                box-shadow 0.15s ease-in-out;
-}
-
-/* Hover: solidify the affordance so it reads as clearly tappable */
-.ge-add-btn:hover {
+.ge-card > .card-header {
+    position: relative;
+    padding: 1.1rem 1.25rem !important;
     color: #fff;
-    background-color: var(--bs-primary);
-    border-style: solid;
-    box-shadow: 0 0.25rem 0.75rem rgba(13, 110, 253, 0.35);
+    background: #182230 !important;
+    border: 0 !important;
 }
 
-/* Subtle press feedback for touch users */
-.ge-add-btn:active {
-    transform: scale(0.985);
-}
-
-/* Visible keyboard focus ring */
-.ge-add-btn:focus-visible {
-    outline: 0;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.35);
-}
-
-/* Icon nudges on hover to hint the "add" action */
-.ge-add-btn .bi {
-    transition: transform 0.15s ease-in-out;
-}
-
-.ge-add-btn:hover .bi {
-    transform: scale(1.15);
-}
-
-/* ============================================================
-   New-row feedback: brief highlight flash + fade-in so users
-   can see exactly where the new subject was inserted.
-   ============================================================ */
-@keyframes geRowFlash {
-    0% {
-        background-color: rgba(13, 110, 253, 0.18);
-    }
-    100% {
-        background-color: transparent;
-    }
-}
-
-.ge-table > tbody > tr.ge-row-new {
-    animation: geRowFlash 1.2s ease-out forwards;
-}
-
-@keyframes geNameShake {
-    0%, 100% { transform: translateX(0); }
-    25%      { transform: translateX(-3px); }
-    75%      { transform: translateX(3px); }
-}
-
-/* Invalid subject name: red border + gentle shake + helper text */
-.ge-name-input.is-invalid-name {
-    border-color: var(--bs-danger);
-    background-color: #fff;
-    animation: geNameShake 0.25s ease-in-out;
-    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-}
-
-.ge-name-input.is-invalid-name:focus {
-    border-color: var(--bs-danger);
-    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-}
-
-/* Grade fields blocked until the Subject Name is entered: read-only +
-   removed from tab order, muted look + not-allowed cursor (same
-   "explains why" feedback pattern as the disabled Clear button) */
-.ge-input.ge-input-blocked {
-    cursor: not-allowed;
-    background-color: var(--bs-tertiary-bg);
-}
-
-.ge-input.ge-input-blocked:hover:not(:focus) {
-    border-color: var(--bs-border-color);
-}
-
-/* Screen-reader-only live region for add-subject feedback */
-.ge-visually-hidden {
+.ge-card > .card-header::after {
     position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+    right: 1.25rem;
+    bottom: 0;
+    width: 7rem;
+    height: 0.2rem;
+    content: "";
+    background: #55b8ff;
+    border-radius: 1rem 1rem 0 0;
 }
 
-/* ============================================================
-   Confirmation modal: friendly, touch-friendly footer buttons
-   - large tap targets (44px+, Apple HIG) for mobile / iPhone / Safari
-   - equal-width side by side on ≥sm screens, stacked full-width below
-   - visible focus ring for keyboard users, press feedback on tap
-   ============================================================ */
-#geConfirmModal .modal-footer {
-    padding: 0.75rem 1rem 1rem;
-    border-top: 0;
+.ge-card > .card-header > div { min-width: 0; }
+.ge-card > .card-header .bg-primary { background: var(--ge-blue) !important; }
+.ge-card > .card-header h1 { letter-spacing: 0.02em; }
+.ge-card > .card-header small { color: #c6d0dc !important; }
+.ge-card > .card-header .badge { padding: 0.45rem 0.7rem; color: #dcecff !important; background: rgba(255, 255, 255, 0.1) !important; border: 1px solid rgba(255, 255, 255, 0.18); }
+.ge-card > .card-body { padding: 0.75rem !important; background: transparent !important; }
+.table-responsive { overflow: visible; border: 0 !important; border-radius: var(--ge-radius-md) !important; background: transparent !important; box-shadow: none !important; }
+
+.ge-table { width: 100%; margin: 0; color: var(--ge-ink); border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+.ge-table th, .ge-table td { border-color: var(--ge-line) !important; }
+.ge-table > thead > tr:first-child > th { padding: 0.75rem 0.6rem; color: #dcecff; background: #25364c; border-bottom: 1px solid #3d5068 !important; font-size: 0.69rem; font-weight: 700; letter-spacing: 0.09em; }
+.ge-table > thead > tr:last-child > th { padding: 0.4rem 0.5rem 0.65rem; color: #a9c0d9; background: #25364c; font-size: 0.72rem; font-weight: 700; }
+.ge-col-area { width: 22%; }
+.ge-col-q { width: 9%; text-align: center; }
+.ge-col-final { width: 12%; text-align: center; }
+.ge-col-remarks { width: 16%; text-align: center; }
+.ge-col-action { width: 14%; text-align: center; }
+.ge-table > tbody > tr.ge-subject-row, .ge-table > tbody:not(.ge-add-tbody) > tr { background: var(--ge-panel); transition: background-color 0.18s ease, box-shadow 0.18s ease; }
+.ge-table > tbody:not(.ge-add-tbody) > tr:hover { background: #fbfdff; box-shadow: inset 0.2rem 0 0 var(--ge-blue); }
+.ge-table > tbody > tr > td { height: 4.8rem; padding: 0.65rem 0.45rem; vertical-align: middle; font-size: 0.9rem; }
+.ge-table > tbody > tr > td:first-child { padding-left: 0.9rem; }
+.ge-table > tbody > tr > td:last-child { padding-right: 0.75rem; }
+
+.ge-name-input { width: 100%; min-width: 0; padding: 0.62rem 0.7rem; color: var(--ge-ink); background: transparent; border: 1px solid transparent; border-radius: var(--ge-radius-sm); font-weight: 700; transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
+.ge-name-input:hover:not(:focus) { background: var(--ge-blue-soft); border-color: var(--ge-blue-line); }
+.ge-name-input:focus, .ge-input:focus { outline: 0; box-shadow: var(--ge-focus); }
+.ge-name-input:focus { background: #fff; border-color: var(--ge-blue); }
+.ge-name-input::placeholder { color: #98a2b3; font-weight: 500; font-style: italic; }
+.ge-input { width: 100%; min-height: 2.7rem; padding: 0.4rem 0.2rem; color: var(--ge-ink); background: #fff; border: 1px solid #cbd5e1; border-radius: var(--ge-radius-sm); font-size: 0.92rem; font-variant-numeric: tabular-nums; font-weight: 650; text-align: center; transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
+.ge-input:hover:not(:focus) { background: var(--ge-blue-soft); border-color: #7caef0; }
+.ge-input::placeholder { color: #98a2b3; font-size: 0.7rem; }
+.ge-input.is-valid { border-color: #65b891; background-color: #f7fcf9; background-image: none }
+.ge-input.is-invalid { background-image: none; border-color: var(--ge-red); background-color: var(--ge-red-soft); box-shadow: 0 0 0 0.18rem rgba(180, 35, 24, 0.13); }
+.ge-input.ge-input-blocked { color: #98a2b3; background: #eef1f4; border-color: #e1e6eb; cursor: not-allowed; opacity: 0.78; }
+.ge-input::-webkit-outer-spin-button, .ge-input::-webkit-inner-spin-button { margin: 0; -webkit-appearance: none; }
+.ge-input { -moz-appearance: textfield; appearance: textfield; }
+
+.ge-table td.text-primary-emphasis { color: var(--ge-blue) !important; background: var(--ge-blue-soft); border-radius: var(--ge-radius-sm); font-size: 1.05rem; font-weight: 800 !important; font-variant-numeric: tabular-nums; text-align: center; }
+.ge-table td .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 5.4rem; padding: 0.4rem 0.55rem; border: 1px solid transparent; font-size: 0.75rem; font-weight: 700 !important; }
+.ge-table td .text-warning-emphasis { color: var(--ge-amber) !important; background: var(--ge-amber-soft) !important; border-color: #f0d58e; }
+.ge-table td .text-success-emphasis { color: var(--ge-green) !important; background: var(--ge-green-soft) !important; border-color: #a9ddc1; }
+.ge-table td .text-danger-emphasis { color: var(--ge-red) !important; background: var(--ge-red-soft) !important; border-color: #f1b3ad; }
+
+.ge-action-btn { display: inline-flex; align-items: center; justify-content: center; width: 2.45rem; height: 2.45rem; padding: 0; color: #667085; background: #fff; border: 1px solid var(--ge-line); border-radius: var(--ge-radius-sm); transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease; }
+.ge-action-btn:hover:not(:disabled) { color: var(--ge-blue); background: var(--ge-blue-soft); border-color: var(--ge-blue-line); }
+.ge-action-btn.ge-action-delete { color: var(--ge-red); background: var(--ge-red-soft); border-color: #f1b3ad; }
+.ge-action-btn.ge-action-delete:hover:not(:disabled) { color: #fff; background: var(--ge-red); border-color: var(--ge-red); }
+.ge-action-btn:active:not(:disabled) { transform: scale(0.94); }
+.ge-action-btn:focus-visible, .ge-add-btn:focus-visible, .ge-confirm-cancel:focus-visible, .ge-confirm-action:focus-visible { outline: 0; box-shadow: var(--ge-focus); }
+.ge-action-btn:disabled { color: #98a2b3; background: #f2f4f7; border-color: #eaecf0; opacity: 0.75; cursor: not-allowed; }
+.ge-tooltip-host { display: inline-flex; vertical-align: middle; cursor: help; }
+.ge-tooltip-host.ge-no-grades { cursor: not-allowed; }
+
+.ge-add-tbody > tr > td { padding: 0.75rem; background: #f8fafc; }
+.ge-add-btn { min-height: 2.9rem; color: var(--ge-blue); background: transparent; border: 1px dashed var(--ge-blue-line); border-radius: var(--ge-radius-sm); font-weight: 700; transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease; }
+.ge-add-btn:hover { color: #fff; background: var(--ge-blue); border-color: var(--ge-blue); transform: translateY(-1px); }
+.ge-add-btn:active { transform: translateY(0); }
+
+.ge-table > tfoot > tr { background: var(--ge-panel); }
+.ge-table > tfoot > tr > td { height: 4.8rem; padding: 0.65rem 0.45rem; vertical-align: middle; font-size: 0.9rem; border-top: 1px solid var(--ge-line) !important; }
+.ge-table > tfoot > tr > td:first-child { padding-left: 0.9rem; }
+#ge_total_average { color: var(--ge-blue); font-variant-numeric: tabular-nums; }
+#total_average_remarks { font-size: 0.9rem !important; }
+.ge-total-remark { color: var(--ge-blue) !important; font-weight: 700; }
+.ge-total-remark--promoted { color: var(--ge-green) !important; }
+.ge-total-remark--unqualified { color: var(--ge-red) !important; }
+.ge-total-remark--none { color: var(--ge-blue) !important; }
+.ge-name-input.is-invalid-name { border-color: var(--ge-red); background: var(--ge-red-soft); box-shadow: 0 0 0 0.18rem rgba(180, 35, 24, 0.13); }
+.ge-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+#ge_confirm_modal .modal-content { overflow: hidden; border: 0; border-radius: var(--ge-radius-lg); box-shadow: var(--ge-shadow); }
+#ge_confirm_modal .modal-header { padding: 1.1rem 1.25rem; color: #fff; background: #182230; border: 0; }
+#ge_confirm_modal .modal-title { font-size: 1rem; font-weight: 700; }
+#ge_confirm_modal .btn-close { filter: invert(1); opacity: 0.8; }
+#ge_confirm_modal .modal-body { padding: 1.25rem; color: var(--ge-muted); line-height: 1.6; }
+#ge_confirm_modal .modal-footer { padding: 0 1.25rem 1.25rem; border: 0; }
+#ge_confirm_modal .modal-footer .btn { min-height: 2.8rem; flex: 1 1 0; border-radius: var(--ge-radius-sm); font-weight: 700; }
+#ge_confirm_modal .ge-confirm-cancel { color: var(--ge-ink); background: #f2f4f7; border-color: #eaecf0; }
+#ge_confirm_modal .ge-confirm-action { border: 0; }
+
+@media (min-width: 576px) {
+    .ge-card > .card-body { padding: 1.25rem !important; }
 }
 
-#geConfirmModal .modal-footer .btn {
-    min-height: 48px;
-    min-width: 8.5rem;
-    flex: 1 1 0;
-    font-weight: 600;
-    border-radius: 0.625rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.1s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+@media (min-width: 768px) {
+    .ge-card > .card-header { padding: 1.25rem 1.5rem !important; }
+    .ge-card > .card-body { padding: 1.5rem !important; }
+    .ge-table > tbody > tr > td { padding-top: 0.75rem; padding-bottom: 0.75rem; }
 }
 
-/* Cancel: clearly the safe, secondary choice */
-#geConfirmModal .ge-confirm-cancel {
-    background-color: var(--bs-tertiary-bg);
-    border: 1px solid var(--bs-border-color);
-    color: var(--bs-body-color);
+@media (max-width: 767.98px) {
+    main.container { padding: 0.75rem !important; }
+    .ge-card > .card-header { align-items: flex-start !important; }
+    .ge-card > .card-header .badge { margin-top: 0.1rem; }
+    .ge-table { display: block; }
+    .ge-table > thead { display: none; }
+    .ge-table > tbody, .ge-table > tfoot { display: block; }
+    .ge-table > tbody:not(.ge-add-tbody) > tr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.65rem; margin-bottom: 0.75rem; padding: 0.85rem; border: 1px solid var(--ge-line); border-radius: var(--ge-radius-md); box-shadow: 0 0.25rem 0.75rem rgba(24, 34, 48, 0.04); }
+    .ge-table > tbody:not(.ge-add-tbody) > tr:hover { box-shadow: 0 0.35rem 1rem rgba(24, 34, 48, 0.07); }
+    .ge-table > tbody:not(.ge-add-tbody) > tr > td, .ge-table > tbody:not(.ge-add-tbody) > tr > td:first-child, .ge-table > tbody:not(.ge-add-tbody) > tr > td:last-child { width: auto; height: auto; min-width: 0; padding: 0; border: 0 !important; }
+    .ge-table > tbody:not(.ge-add-tbody) > tr > td:first-child { grid-column: 1 / -1; padding-bottom: 0.35rem; border-bottom: 1px solid var(--ge-line) !important; }
+    .ge-table > tbody:not(.ge-add-tbody) > tr > td:nth-child(2)::before, .ge-table > tbody:not(.ge-add-tbody) > tr > td:nth-child(3)::before, .ge-table > tbody:not(.ge-add-tbody) > tr > td:nth-child(4)::before, .ge-table > tbody:not(.ge-add-tbody) > tr > td:nth-child(5)::before { display: block; margin-bottom: 0.25rem; color: var(--ge-muted); font-size: 0.67rem; font-weight: 800; letter-spacing: 0.08em; text-align: center; content: "Q1"; }
+    .ge-table > tbody:not(.ge-add-tbody) > tr > td:nth-child(3)::before { content: "Q2"; }
+    .ge-table > tbody:not(.ge-add-tbody) > tr > td:nth-child(4)::before { content: "Q3"; }
+    .ge-table > tbody:not(.ge-add-tbody) > tr > td:nth-child(5)::before { content: "Q4"; }
+    .ge-table > tbody:not(.ge-add-tbody) > tr > td:nth-child(6) { grid-column: span 2; }
+    .ge-table > tbody:not(.ge-add-tbody) > tr > td:nth-child(6)::before { display: block; margin-bottom: 0.25rem; color: var(--ge-muted); font-size: 0.67rem; font-weight: 800; letter-spacing: 0.08em; content: "AVERAGE"; }
+    .ge-table > tbody:not(.ge-add-tbody) > tr > td:nth-child(7)::before { display: block; margin-bottom: 0.25rem; color: var(--ge-muted); font-size: 0.67rem; font-weight: 800; letter-spacing: 0.08em; content: "STATUS"; }
+    .ge-table > tbody:not(.ge-add-tbody) > tr > td:nth-child(8)::before { display: block; margin-bottom: 0.25rem; color: var(--ge-muted); font-size: 0.67rem; font-weight: 800; letter-spacing: 0.08em; content: "ACTIONS"; }
+    .ge-table > tbody:not(.ge-add-tbody) .ge-name-input { padding: 0.55rem 0.65rem; font-size: 1rem; }
+    .ge-table > tbody:not(.ge-add-tbody) .ge-input { min-height: 3rem; font-size: 0.95rem; }
+    .ge-table > tbody:not(.ge-add-tbody) .ge-action-btn { width: 2.25rem; height: 2.25rem; }
+    .ge-table > tbody.ge-add-tbody > tr { display: block; }
+    .ge-table > tbody.ge-add-tbody > tr > td { display: block; padding: 0 0 0.25rem; border: 0 !important; }
+    .ge-table > tfoot > tr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.65rem; margin-top: 0.75rem; padding: 0.85rem 0; }
+    .ge-table > tfoot > tr > td { display: block; width: auto; height: auto; min-height: 3.125rem; padding: 0; border: 0 !important; text-align: center !important; }
+    .ge-table > tfoot > tr > td:first-child { grid-column: 1 / -1; padding-bottom: 0.35rem; border-bottom: 1px solid var(--ge-line) !important; }
+    .ge-table > tfoot > tr > td:nth-child(2), .ge-table > tfoot > tr > td:nth-child(3), .ge-table > tfoot > tr > td:nth-child(4), .ge-table > tfoot > tr > td:nth-child(5), .ge-table > tfoot > tr > td:nth-child(8) { display: none; }
+    .ge-table > tfoot > tr > td:nth-child(6) { grid-column: span 2; }
+    .ge-table > tfoot > tr > td:nth-child(6)::before { display: block; margin-bottom: 0.25rem; color: var(--ge-muted); font-size: 0.67rem; font-weight: 800; letter-spacing: 0.08em; content: "AVERAGE"; }
+    .ge-table > tfoot > tr > td:nth-child(7)::before { display: block; margin-bottom: 0.25rem; color: var(--ge-muted); font-size: 0.67rem; font-weight: 800; letter-spacing: 0.08em; content: "REMARKS"; }
 }
 
-#geConfirmModal .ge-confirm-cancel:hover {
-    background-color: var(--bs-secondary-bg);
-    border-color: var(--bs-border-color);
-    color: var(--bs-body-color);
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }
 
-/* Subtle press feedback for touch users */
-#geConfirmModal .modal-footer .btn:active {
-    transform: scale(0.97);
+@media print {
+    body { background: #fff; }
+    .ge-card { box-shadow: none !important; }
+    .ge-action-btn, .ge-add-btn, #ge_confirm_modal { display: none !important; }
 }
-
-/* Visible keyboard focus ring */
-#geConfirmModal .modal-footer .btn:focus-visible {
-    outline: 0;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.35);
-}
-
-@media (max-width: 575.98px) {
-    #geConfirmModal .modal-footer .btn {
-        width: 100%;       /* full-width stacked buttons on phones */
-        min-width: 0;
-    }
-}
-
-
-
-
-

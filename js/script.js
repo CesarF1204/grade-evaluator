@@ -1291,12 +1291,13 @@ const initGradeEvaluator = () => {
     // Event delegation: one listener handles all quarter inputs,
     // including those in dynamically added rows. While typing, the value
     // is sanitized (invalid characters stripped) and validated live with
-    // Bootstrap styles; only valid values ever reach the averages.
+    // Bootstrap styles. Total Average and Total Average Remarks are NOT
+    // recalculated during typing to keep the display stable and avoid
+    // distracting updates; they update only when the field loses focus.
     document.addEventListener('input', (event) => {
         if (event.target.matches(GRADE_INPUT_SELECTOR)) {
             sanitizeGradeInput(event.target);
             validateGradeInput(event.target);
-            updateAllAverages();
 
             // Live enable/disable of the Clear button for the edited row
             const subjectRow = event.target.closest(SUBJECT_ROW_SELECTOR);
@@ -1304,10 +1305,16 @@ const initGradeEvaluator = () => {
         }
     });
 
-    // On blur (and on form-level checks), show final validation feedback.
+    // On blur (focus leaves the field), show final validation feedback
+    // and recalculate the Total Average and Total Average Remarks. This
+    // ensures the totals stay stable while the user types and update only
+    // once they finish editing a grade. When moving directly from one
+    // grade field to another, this fires before the next field is focused,
+    // so the previous field's changes are processed correctly.
     document.addEventListener('blur', (event) => {
         if (event.target.matches && event.target.matches(GRADE_INPUT_SELECTOR)) {
             validateGradeInput(event.target);
+            updateAllAverages();
         }
     }, true);
 };

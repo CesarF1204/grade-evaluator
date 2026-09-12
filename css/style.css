@@ -559,11 +559,47 @@ body {
     }
     .ge-card > .card-header {
         align-items: center !important;
-        /* Safari flexbox fix: ensure proper wrapping behavior */
-        -webkit-box-align: center !important;
+        /* Safari flexbox fix: prevent wrapping on mobile */
+        -webkit-flex-wrap: nowrap !important;
+        -ms-flex-wrap: nowrap !important;
+        flex-wrap: nowrap !important;
+        padding: 0.875rem 1.125rem !important;
+    }
+    .ge-card > .card-header > div:first-child {
+        /* Allow title area to shrink on small screens */
+        min-width: 0;
+        overflow: hidden;
+        gap: 0.625rem !important;
+    }
+    .ge-card > .card-header .bg-primary {
+        /* Smaller logo icon on mobile */
+        padding: 0.4rem !important;
+    }
+    .ge-card > .card-header .bg-primary svg {
+        width: 18px;
+        height: 18px;
+    }
+    .ge-card > .card-header h1 {
+        /* Smaller title on mobile - still readable */
+        font-size: 0.875rem !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .ge-card > .card-header small {
+        /* Smaller subtitle on mobile - still readable */
+        font-size: 0.75rem !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .ge-card > .card-header .badge {
-        /* Safari flexbox fix: use margin-left: auto for reliable right alignment */
+        /* Smaller badge on mobile - still readable */
+        font-size: 0.8rem !important;
+        padding: 0.4rem 0.6rem !important;
+        /* Safari flexbox fix: ensure badge stays right-aligned */
+        -webkit-flex-shrink: 0 !important;
+        flex-shrink: 0 !important;
         margin-left: auto;
         margin-top: 0;
     }
@@ -908,6 +944,8 @@ body {
     }
     .ge-card > .card-header .badge {
         /* Force right alignment on very small screens */
+        -webkit-flex-shrink: 0 !important;
+        flex-shrink: 0 !important;
         margin-left: auto;
         margin-right: 0;
     }

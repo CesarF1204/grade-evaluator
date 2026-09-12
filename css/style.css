@@ -540,9 +540,6 @@ body {
 }
 
 @media (min-width: 768px) {
-    .ge-card > .card-header {
-        padding: 1.25rem 1.5rem !important;
-    }
     .ge-card > .card-body {
         padding: 1.5rem !important;
     }

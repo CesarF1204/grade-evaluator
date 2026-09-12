@@ -111,10 +111,6 @@ body {
     table-layout: fixed;
 }
 
-.ge-table th, .ge-table td {
-    border-color: var(--ge-line) !important;
-}
-
 .ge-table > thead > tr:first-child > th {
     padding: 0.75rem 0.6rem;
     color: #dcecff;
@@ -281,8 +277,6 @@ body {
 
 .ge-table td.text-primary-emphasis {
     color: var(--ge-blue) !important;
-    background: var(--ge-blue-soft);
-    border-radius: var(--ge-radius-sm);
     font-size: 1.05rem;
     font-weight: 800 !important;
     font-variant-numeric: tabular-nums;
@@ -386,7 +380,6 @@ body {
 
 .ge-add-tbody > tr > td {
     padding: 0.75rem;
-    background: #f8fafc;
 }
 
 .ge-add-btn {
@@ -423,7 +416,6 @@ body {
     padding: 0.65rem 0.45rem;
     vertical-align: middle;
     font-size: 0.9rem;
-    border-top: 1px solid var(--ge-line) !important;
 }
 
 .ge-table > tfoot > tr > td:first-child {

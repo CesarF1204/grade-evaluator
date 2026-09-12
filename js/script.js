@@ -288,7 +288,7 @@ const displaySubjectAverage = (row, average) => {
         return;
     }
 
-    averageCell.textContent = roundGrade(average);
+    averageCell.textContent = roundGrade(average) + '%';
 
     if (remarksBadge) {
         const passed = average >= PASSING_GRADE;
@@ -335,7 +335,7 @@ const updateAllAverages = () => {
     const totalAverage = allComplete ? roundGrade(total / gradedCount) : null;
 
     if (totalAverageCell) {
-        totalAverageCell.textContent = totalAverage !== null ? totalAverage : '—';
+        totalAverageCell.textContent = totalAverage !== null ? totalAverage + '%' : '—';
     }
 
     // Update Total Average Remarks based on all subjects' remarks and the Total Average

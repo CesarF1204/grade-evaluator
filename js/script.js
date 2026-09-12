@@ -1228,12 +1228,19 @@ const initAddSubjectControl = () => {
     // required + duplicate checks with inline feedback
     subjectsBody.addEventListener('focusout', (event) => {
         if (event.target.matches(SUBJECT_NAME_INPUT_SELECTOR)) {
-            commitSubjectNameValue(event.target);
-            validateSubjectName(event.target, true);
+            const nameInput = event.target;
+            const previousValue = nameInput.value.trim();
+            commitSubjectNameValue(nameInput);
+            const newValue = nameInput.value.trim();
+            const isValid = validateSubjectName(nameInput, true);
             // Re-sync grade access: a name committed to whitespace-only/empty
             // blocks its row's grade fields again
-            const row = event.target.closest(SUBJECT_ROW_SELECTOR);
+            const row = nameInput.closest(SUBJECT_ROW_SELECTOR);
             if (row) syncGradeInputsState(row);
+            // Show toast when the subject name is successfully updated (valid and non-empty)
+            if (isValid && newValue) {
+                showSuccessToast(`Subject name updated to "${newValue}".`);
+            }
         }
     });
 
@@ -1259,6 +1266,10 @@ const initAddSubjectControl = () => {
             nameInput.dataset.geTouched = 'true';
             commitSubjectNameValue(nameInput);
             if (validateSubjectName(nameInput, true)) {
+                const newValue = nameInput.value.trim();
+                if (newValue) {
+                    showSuccessToast(`Subject name updated to "${newValue}".`);
+                }
                 const row = nameInput.closest(SUBJECT_ROW_SELECTOR);
                 const firstGrade = row.querySelector(GRADE_INPUT_SELECTOR);
                 if (firstGrade) firstGrade.focus();

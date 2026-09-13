@@ -821,6 +821,13 @@ th[data-sortable-col] {
         bottom: 0.05rem;
         height: 0.15rem;
     }
+    .ge-user-name-edit {
+        /* The subtitle's extra padding-bottom (added above for the clipped
+           underline) makes its box taller, which would push the flex-centered
+           pencil below the text line. Mirror that padding so the pencil stays
+           vertically aligned with the full name text on small devices. */
+        margin-bottom: 0.4rem;
+    }
     .ge-card > .card-header .badge {
         /* Smaller badge on mobile - still readable */
         font-size: 0.8rem !important;

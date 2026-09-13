@@ -26,6 +26,7 @@ const SUBJECT_ROWS_SELECTOR = '#ge_subjects_body tr';
 const SUBJECT_NAME_INPUT_SELECTOR = '.ge-name-input';
 const ADD_BUTTON_SELECTOR = '#ge_add_subject_button';
 const SUBJECTS_BODY_SELECTOR = '#ge_subjects_body';
+const EMPTY_BODY_SELECTOR = '#ge_empty_body';
 const SUBJECT_ROW_SELECTOR = 'tr';
 const RESET_BUTTON_SELECTOR = '.ge-action-reset';
 const RESET_TOOLTIP_HOST_SELECTOR = '.ge-tooltip-host';
@@ -555,6 +556,10 @@ const updateAllAverages = () => {
     // Update Total Average Remarks based on all subjects' remarks and the Total Average
     updateTotalAverageRemarks(subjectRows, totalAverage);
 
+    // Show the dedicated empty state when the last subject row is removed,
+    // hide it again as soon as at least one subject exists.
+    updateSubjectsEmptyState();
+
     // Keep the visible order in sync when Average/Remarks values change,
     // without touching the <tfoot> Total Average row.
     if (activeSortKey === 'average' || activeSortKey === 'remarks') applyActiveSort();
@@ -610,6 +615,37 @@ const calculateTotalAverageRemarks = (subjectRows, totalAverage) => {
     }
     // Priority 4: All Passed AND Total Average < 75 → Unqualified
     return 'Unqualified';
+};
+
+/**
+ * DOCU: This function is used to toggle the Subjects empty state. <br>
+ * When #ge_subjects_body holds zero rows, the dedicated empty-state tbody is <br>
+ * shown and the footer Total Average row is hidden so the table never looks <br>
+ * blank or broken. Otherwise the empty state is hidden and footer returns. <br>
+ * The Add Subject control lives in its own tbody and always stays visible. <br>
+ * Last Updated Date: September 13, 2026 <br>
+ * @function updateSubjectsEmptyState
+ * @author Cesar
+ */
+const updateSubjectsEmptyState = () => {
+    const subjectsBody = document.querySelector(SUBJECTS_BODY_SELECTOR);
+    const emptyBody = document.querySelector(EMPTY_BODY_SELECTOR);
+    const totalFooterCell = document.querySelector(TOTAL_AVERAGE_CELL_SELECTOR);
+    if (!subjectsBody || !emptyBody) return;
+    const hasSubjects = subjectsBody.querySelectorAll(SUBJECT_ROW_SELECTOR).length > 0;
+    if (hasSubjects) {
+        emptyBody.setAttribute('hidden', '');
+    } else {
+        emptyBody.removeAttribute('hidden');
+    }
+    const footerRow = totalFooterCell ? totalFooterCell.closest('tr') : null;
+    if (footerRow) {
+        if (hasSubjects) {
+            footerRow.removeAttribute('hidden');
+        } else {
+            footerRow.setAttribute('hidden', '');
+        }
+    }
 };
 
 /**
@@ -1823,11 +1859,14 @@ const initAddSubjectControl = () => {
             return; // new subject is NOT added until the error is resolved
         }
 
-        const lastRow = subjectsBody.querySelector('tr:last-of-type');
-        if (!lastRow) return;
-
         const newRow = createSubjectRow();
-        lastRow.after(newRow); // control <tbody> stays below the new last row
+        const lastRow = subjectsBody.querySelector('tr:last-of-type');
+        if (lastRow) {
+            lastRow.after(newRow); // control <tbody> stays below the new last row
+        } else {
+            // Empty list: no row to insert after, so append as the first row.
+            subjectsBody.appendChild(newRow);
+        }
 
         updateAllAverages(); // show "—"/Incomplete for the blank row
         if (activeSortKey === 'subject') applyActiveSort();

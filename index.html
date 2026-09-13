@@ -128,6 +128,22 @@
                                     </td>
                                 </tr>
                             </tbody>
+                            <!-- Empty state: shown only when there are no subject rows.
+                                 Kept in its own tbody so #ge_subjects_body stays truly
+                                 empty (no placeholder rows counted as data). -->
+                            <tbody class="ge-empty-tbody" id="ge_empty_body" hidden>
+                                <tr class="ge-empty-row">
+                                    <td colspan="8" class="ge-empty-cell">
+                                        <div class="ge-empty-state" role="status" aria-live="polite">
+                                            <span class="ge-empty-icon" aria-hidden="true">
+                                                <i class="bi bi-journal-x"></i>
+                                            </span>
+                                            <p class="ge-empty-title">No subjects available</p>
+                                            <p class="ge-empty-text">You haven't added any subjects yet. Click <strong>Add subject</strong> below to add your first subject and start entering grades.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
                             <!-- "Add subject" control: lives in its own tbody so it
                                  always sits directly underneath the last subject row -->
                             <tbody class="ge-add-tbody">

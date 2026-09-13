@@ -36,6 +36,10 @@ const CONFIRM_MODAL_BODY_SELECTOR = '#ge_confirm_modal_body';
 const CONFIRM_MODAL_ACTION_SELECTOR = '#ge_confirm_modal_action';
 const LIVE_REGION_SELECTOR = '#ge_live_region';
 const PASSING_GRADE = 75;
+const SORT_BUTTON_SELECTOR = '.ge-sort-btn';
+const SORT_ICON_DEFAULT_CLASS = 'bi bi-arrow-down-up';
+const SORT_ICON_ASC_CLASS = 'bi bi-arrow-up';
+const SORT_ICON_DESC_CLASS = 'bi bi-arrow-down';
 
 /**
  * Cached reference to the Total Average Remarks cell in the footer.
@@ -550,6 +554,10 @@ const updateAllAverages = () => {
 
     // Update Total Average Remarks based on all subjects' remarks and the Total Average
     updateTotalAverageRemarks(subjectRows, totalAverage);
+
+    // Keep the visible order in sync when Average/Remarks values change,
+    // without touching the <tfoot> Total Average row.
+    if (activeSortKey === 'average' || activeSortKey === 'remarks') applyActiveSort();
 };
 
 /**
@@ -1093,6 +1101,95 @@ const handleConfirmedAction = () => {
         deleteSubjectRow(row);
     }
 };
+
+let activeSortKey = null;
+let activeSortDirection = 'asc';
+
+const getRowSortValue = (row, key) => {
+    if (key === 'subject') {
+        const nameInput = row.querySelector(SUBJECT_NAME_INPUT_SELECTOR);
+        const text = nameInput ? nameInput.value.trim() : '';
+        return { empty: text === '', text: text, number: Number.NaN };
+    }
+    if (key === 'average') {
+        const averageCell = row.querySelector(AVERAGE_CELL_SELECTOR);
+        const raw = averageCell ? averageCell.textContent.trim() : '';
+        if (!raw || raw === '—') return { empty: true, text: '', number: Number.NaN };
+        const number = Number.parseFloat(raw);
+        if (Number.isNaN(number)) return { empty: true, text: raw, number: Number.NaN };
+        return { empty: false, text: raw, number: number };
+    }
+    const badge = row.querySelector(REMARKS_BADGE_SELECTOR);
+    const text = badge ? badge.textContent.trim() : '';
+    const isEmpty = text === '' || text === '—';
+    return { empty: isEmpty, text: isEmpty ? '' : text, number: Number.NaN };
+};
+
+const compareSubjectRows = (a, b, key, direction) => {
+    if (a.value.empty && b.value.empty) return a.index - b.index;
+    if (a.value.empty) return 1;
+    if (b.value.empty) return -1;
+    let result = 0;
+    if (key === 'average') {
+        result = a.value.number - b.value.number;
+    } else {
+        result = a.value.text.localeCompare(b.value.text, undefined, { sensitivity: 'base', numeric: true });
+    }
+    if (result === 0) return a.index - b.index;
+    return direction === 'desc' ? -result : result;
+};
+
+const updateSortIndicators = () => {
+    document.querySelectorAll(SORT_BUTTON_SELECTOR).forEach((button) => {
+        const key = button.getAttribute('data-sort-key');
+        const headerCell = button.closest('th');
+        const icon = button.querySelector('.ge-sort-icon i');
+        const labelNode = button.querySelector('.ge-sort-label');
+        const label = labelNode && labelNode.textContent ? labelNode.textContent.trim() : (key || 'Column');
+        const isActive = key === activeSortKey;
+        if (icon) {
+            icon.className = !isActive ? SORT_ICON_DEFAULT_CLASS : (activeSortDirection === 'desc' ? SORT_ICON_DESC_CLASS : SORT_ICON_ASC_CLASS);
+        }
+        button.classList.toggle('is-sorted', isActive);
+        if (isActive) button.setAttribute('data-direction', activeSortDirection);
+        else button.removeAttribute('data-direction');
+        if (!isActive) button.setAttribute('aria-label', 'Sort by ' + label);
+        else button.setAttribute('aria-label', 'Sorted by ' + label + ', ' + (activeSortDirection === 'desc' ? 'descending' : 'ascending') + '. Activate to sort ' + (activeSortDirection === 'desc' ? 'ascending' : 'descending') + '.');
+        if (headerCell) {
+            if (!isActive) headerCell.removeAttribute('aria-sort');
+            else headerCell.setAttribute('aria-sort', activeSortDirection === 'desc' ? 'descending' : 'ascending');
+        }
+    });
+};
+
+const applyActiveSort = () => {
+    if (!activeSortKey) return;
+    const subjectsBody = document.querySelector(SUBJECTS_BODY_SELECTOR);
+    if (!subjectsBody) return;
+    const rows = Array.from(subjectsBody.querySelectorAll(':scope > ' + SUBJECT_ROW_SELECTOR));
+    if (rows.length < 2) return;
+    const decorated = rows.map((row, index) => ({ row: row, value: getRowSortValue(row, activeSortKey), index: index }));
+    decorated.sort((a, b) => compareSubjectRows(a, b, activeSortKey, activeSortDirection));
+    decorated.forEach((entry) => subjectsBody.appendChild(entry.row));
+};
+
+const handleSortClick = (key) => {
+    if (!key) return;
+    if (activeSortKey === key) activeSortDirection = activeSortDirection === 'desc' ? 'asc' : 'desc';
+    else { activeSortKey = key; activeSortDirection = 'asc'; }
+    applyActiveSort();
+    updateSortIndicators();
+};
+
+const initTableSorting = () => {
+    document.addEventListener('click', (event) => {
+        const button = event.target && event.target.closest ? event.target.closest(SORT_BUTTON_SELECTOR) : null;
+        if (!button) return;
+        handleSortClick(button.getAttribute('data-sort-key'));
+    });
+    updateSortIndicators();
+};
+
 
 /**
  * DOCU: This function is used to wire up the Reset and Delete actions for <br>
@@ -1727,6 +1824,7 @@ const initAddSubjectControl = () => {
         lastRow.after(newRow); // control <tbody> stays below the new last row
 
         updateAllAverages(); // show "—"/Incomplete for the blank row
+        if (activeSortKey === 'subject') applyActiveSort();
 
         // Visual feedback: brief highlight flash on the freshly added row
         newRow.classList.add('ge-row-new');
@@ -1867,6 +1965,7 @@ const initGradeEvaluator = () => {
     updateAllClearButtons();
     initAddSubjectControl();
     initRowActions();
+    initTableSorting();
 
     // Subject Name must come first: block grade fields of every row whose
     // name is empty (server-rendered rows included), flag any pre-existing

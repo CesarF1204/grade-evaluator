@@ -715,10 +715,10 @@ const createActionCell = () => {
     actionCell.className = 'ge-col-action';
     actionCell.innerHTML =
         '<div class="d-inline-flex align-items-center gap-1">' +
-        '<span class="d-inline-block ge-tooltip-host" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Clear all subject grades">' +
+        '<span class="d-inline-block ge-tooltip-host" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover" data-bs-title="Clear all subject grades">' +
         '<button type="button" class="btn btn-sm btn-outline-secondary ge-action-btn ge-action-reset" aria-label="Clear all subject grades" disabled><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i></button>' +
         '</span>' +
-        '<button type="button" class="btn btn-sm btn-outline-danger ge-action-btn ge-action-delete" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Remove subject" aria-label="Delete subject"><i class="bi bi-trash3" aria-hidden="true"></i></button>' +
+        '<button type="button" class="btn btn-sm btn-outline-danger ge-action-btn ge-action-delete" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover" data-bs-title="Remove subject" aria-label="Delete subject"><i class="bi bi-trash3" aria-hidden="true"></i></button>' +
         '</div>';
     return actionCell;
 };
@@ -787,9 +787,9 @@ const updateResetTooltip = (row) => {
         : 'Clear all subject grades');
     host.classList.toggle('ge-no-grades', isDisabled);
 
-    if (window.bootstrap && bootstrap.Tooltip) {
-        bootstrap.Tooltip.getOrCreateInstance(host);
-    }
+    // Hover-only trigger: clicking / tapping / focusing the button must not
+    // display its tooltip on desktop or mobile.
+    initRowActionTooltip(host);
 };
 
 /**
@@ -866,11 +866,83 @@ const deleteSubjectRow = (row) => {
 let pendingConfirmAction = null;
 
 /**
+ * DOCU: This module-level flag tracks whether the shared confirmation modal <br>
+ * is currently open. While it is true, no Bootstrap tooltip is allowed to <br>
+ * trigger or show (see the global `show.bs.tooltip` guard in <br>
+ * initTooltipSuppressionWhileModalOpen). This guarantees that hovering, <br>
+ * focusing, tapping, or keyboard-activating any background control while the <br>
+ * modal is visible never displays a tooltip above or behind the modal on <br>
+ * desktop, tablet, or touch devices. <br>
+ * Last Updated Date: September 13, 2026 <br>
+ * @var isConfirmModalOpen
+ * @author Cesar
+ */
+let isConfirmModalOpen = false;
+
+/**
+ * DOCU: This function is used to hide every visible Bootstrap tooltip on the <br>
+ * page. Called right before the shared confirmation modal is shown, so <br>
+ * tapping or clicking a control never leaves its tooltip visible behind or <br>
+ * above the modal on desktop, tablet, or touch devices. <br>
+ * Last Updated Date: September 13, 2026 <br>
+ * @function hideAllVisibleTooltips
+ * @author Cesar
+ */
+const hideAllVisibleTooltips = () => {
+    if (window.bootstrap && bootstrap.Tooltip) {
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+            const instance = bootstrap.Tooltip.getInstance(el);
+            if (instance) instance.hide();
+        });
+    }
+    // Touch browsers can keep :hover stuck after a tap; drop focus too so a
+    // focus-triggered tooltip cannot re-appear over the modal.
+    const activeElement = document.activeElement;
+    if (activeElement && activeElement.blur && activeElement !== document.body) {
+        const modalElement = document.querySelector(CONFIRM_MODAL_SELECTOR);
+        if (!modalElement || !modalElement.contains(activeElement)) {
+            activeElement.blur();
+        }
+    }
+};
+
+/**
+ * DOCU: This function is used to hide every visible Bootstrap tooltip that <br>
+ * belongs to the subject-row action buttons (Clear grades / Remove subject). <br>
+ * Kept for backwards compatibility; delegates to hideAllVisibleTooltips so <br>
+ * row, grade, and name tooltips are all suppressed around the modal. <br>
+ * Last Updated Date: September 13, 2026 <br>
+ * @function hideRowActionTooltips
+ * @author Cesar
+ */
+const hideRowActionTooltips = () => {
+    hideAllVisibleTooltips();
+};
+
+/**
+ * DOCU: This function is used to create a row-action tooltip that only <br>
+ * appears on hover. Using a hover-only trigger guarantees that clicking, <br>
+ * tapping, focusing, or keyboard-activating the Clear / Remove buttons <br>
+ * never displays a tooltip, while mouse hover hints keep working. <br>
+ * Last Updated Date: September 13, 2026 <br>
+ * @function initRowActionTooltip
+ * @param {object} element - the tooltip host element to enhance
+ * @author Cesar
+ */
+const initRowActionTooltip = (element) => {
+    if (!window.bootstrap || !bootstrap.Tooltip) return;
+    const existingTooltip = bootstrap.Tooltip.getInstance(element);
+    if (existingTooltip) existingTooltip.dispose();
+    element.setAttribute('data-bs-trigger', 'hover');
+    bootstrap.Tooltip.getOrCreateInstance(element, { trigger: 'hover' });
+};
+
+/**
  * DOCU: This function is used to read the current display name of a subject <br>
  * row for use in confirmation messages. Falls back to a generic label when <br>
  * the name field is blank. <br>
  * Last Updated Date: September 12, 2026 <br>
- * @function getSubjectDisplayName
+ * @function getSubjectName
  * @param {object} row - the subject <tr> to read the name from
  * @returns {string} the subject's name, or "this subject" when blank
  * @author Cesar
@@ -879,6 +951,27 @@ const getSubjectName = (row) => {
     const nameInput = row.querySelector(SUBJECT_NAME_INPUT_SELECTOR);
     const name = nameInput ? nameInput.value.trim() : '';
     return name !== '' ? name : 'this subject';
+};
+
+/**
+ * DOCU: This function installs a single global guard that prevents any <br>
+ * Bootstrap tooltip from triggering or showing while the shared <br>
+ * confirmation modal is open. Bootstrap fires a cancelable <br>
+ * `show.bs.tooltip` event before displaying a tooltip, so calling <br>
+ * `preventDefault()` there blocks hover, focus, tap, and programmatic shows <br>
+ * alike — including tooltips created after this guard is installed. <br>
+ * Last Updated Date: September 13, 2026 <br>
+ * @function initTooltipSuppressionWhileModalOpen
+ * @author Cesar
+ */
+const initTooltipSuppressionWhileModalOpen = () => {
+    if (initTooltipSuppressionWhileModalOpen.installed) return;
+    initTooltipSuppressionWhileModalOpen.installed = true;
+    document.addEventListener('show.bs.tooltip', (event) => {
+        if (isConfirmModalOpen) {
+            event.preventDefault();
+        }
+    }, true);
 };
 
 /**
@@ -908,21 +1001,26 @@ const showConfirmModal = ({ type, row }) => {
         bodyElement.textContent =
             `All Quarter 1–4 grades for "${subjectName}" will be cleared and ` +
             'its Average removed. This cannot be undone with a single click.';
-        actionButton.innerHTML =
-            '<i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>Clear All Grades';
+        actionButton.textContent = 'Clear All Grades';
         actionButton.className = 'btn ge-confirm-action px-4 btn-warning';
     } else {
         titleElement.textContent = 'Remove subject?';
         bodyElement.innerHTML =
             `<strong>"${subjectName}"</strong> will be permanently removed from the table. ` +
             '<span class="text-danger fw-semibold">This action cannot be undone.</span>';
-        actionButton.innerHTML =
-            '<i class="bi bi-trash3 me-1" aria-hidden="true"></i>Remove Subject';
+        actionButton.textContent = 'Remove Subject';
         actionButton.className = 'btn ge-confirm-action px-4 btn-danger';
     }
 
     // Keep exactly one pending action; re-opening the modal simply replaces it
     pendingConfirmAction = { type, row };
+
+    // A tap/click on the row action can leave its tooltip visible behind the
+    // modal (especially on touch). Hide everything first and mark the modal
+    // as open so no tooltip can trigger or show while it is visible:
+    // Button click -> Perform action -> No tooltip displayed.
+    hideAllVisibleTooltips();
+    isConfirmModalOpen = true;
 
     const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
     modalInstance.show();
@@ -981,7 +1079,9 @@ const initRowActions = () => {
 
     if (window.bootstrap && bootstrap.Tooltip) {
         subjectsBody.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
-            bootstrap.Tooltip.getOrCreateInstance(el);
+            // Hover-only trigger: clicking / tapping / focusing a row action
+            // must not display its tooltip on desktop or mobile.
+            initRowActionTooltip(el);
         });
     }
 
@@ -1012,10 +1112,13 @@ const initRowActions = () => {
         confirmActionButton.addEventListener('click', handleConfirmedAction);
     }
 
-    // Clear the pending action whenever the modal closes by any means
-    // (Cancel button, Esc key, backdrop click, or the X close button)
+    // Clear the pending action and re-allow tooltips whenever the modal
+    // closes by any means (Cancel button, Esc key, backdrop click, or the
+    // X close button)
     modalElement.addEventListener('hidden.bs.modal', () => {
         pendingConfirmAction = null;
+        isConfirmModalOpen = false;
+        hideAllVisibleTooltips();
     });
 };
 
@@ -1590,10 +1693,12 @@ const initAddSubjectControl = () => {
         // ge-no-grades class and shows the disabled (not-allowed) cursor
         updateClearButtonState(newRow);
 
-        // Initialize the Bootstrap tooltips on the new row's action buttons
+        // Initialize the Bootstrap tooltips on the new row's action buttons.
+        // Hover-only trigger: clicking / tapping / focusing a row action
+        // must not display its tooltip on desktop or mobile.
         if (window.bootstrap && bootstrap.Tooltip) {
             newRow.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
-                bootstrap.Tooltip.getOrCreateInstance(el);
+                initRowActionTooltip(el);
             });
         }
 
@@ -1702,6 +1807,10 @@ const updateSchoolYearBadge = () => {
 const initGradeEvaluator = () => {
     // Set default/fallback value for Total Average Remarks before any calculations
     setDefaultTotalAverageRemarks();
+
+    // Install the global tooltip guard FIRST so no tooltip can ever show
+    // while the confirmation modal is open.
+    initTooltipSuppressionWhileModalOpen();
 
     // Dynamically set the School Year badge to current year and next year
     updateSchoolYearBadge();

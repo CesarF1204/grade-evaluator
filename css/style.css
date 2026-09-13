@@ -544,13 +544,25 @@ body {
 #ge_confirm_modal .modal-footer {
     padding: 0 1.25rem 1.25rem;
     border: 0;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: stretch;
+}
+
+#ge_confirm_modal .modal-footer > * {
+    margin: 0;
 }
 
 #ge_confirm_modal .modal-footer .btn {
     min-height: 2.8rem;
+    min-width: 0;
     flex: 1 1 0;
     border-radius: var(--ge-radius-sm);
     font-weight: 700;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 #ge_confirm_modal .ge-confirm-cancel {
@@ -561,6 +573,28 @@ body {
 
 #ge_confirm_modal .ge-confirm-action {
     border: 0;
+}
+
+/* Keep Cancel / Confirm side-by-side on all viewports (no vertical stacking) */
+@media (max-width: 575.98px) {
+    #ge_confirm_modal .modal-dialog {
+        margin: 0.75rem;
+    }
+    #ge_confirm_modal .modal-header,
+    #ge_confirm_modal .modal-body {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    #ge_confirm_modal .modal-footer {
+        padding: 0 1rem 1rem;
+        gap: 0.5rem;
+    }
+    #ge_confirm_modal .modal-footer .btn {
+        min-height: 2.6rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        font-size: 0.9rem;
+    }
 }
 
 @media (min-width: 576px) {

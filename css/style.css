@@ -484,6 +484,8 @@ th[data-sortable-col] {
     border: 1px dashed var(--ge-blue-line);
     border-radius: var(--ge-radius-sm);
     font-weight: 700;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
     transition:
         color 0.15s ease,
         background-color 0.15s ease,
@@ -498,7 +500,12 @@ th[data-sortable-col] {
     transform: translateY(-1px);
 }
 
-.ge-add-btn:active {
+.ge-add-btn:active,
+.ge-add-btn:active:hover,
+.ge-add-btn:active:focus-visible {
+    color: #fff;
+    background: #0e55b3;
+    border-color: #0e55b3;
     transform: translateY(0);
 }
 

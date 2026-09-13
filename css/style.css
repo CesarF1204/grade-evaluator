@@ -1274,7 +1274,11 @@ th[data-sortable-col] {
     border-color: rgba(85, 184, 255, 0.55);
 }
 
-/* Edit-mode input replacing the name text */
+/* Edit-mode input replacing the name text.
+   font-size must resolve to >= 16px on touch devices, otherwise iOS
+   Safari auto-zooms the page when the input gains focus. `max()`
+   keeps the smaller 0.8rem size on desktop while guaranteeing 16px
+   wherever rem is scaled down (e.g. small screens). */
 .ge-user-name-input {
     width: 11rem;
     max-width: 100%;
@@ -1283,7 +1287,7 @@ th[data-sortable-col] {
     background: #fff;
     border: 1px solid var(--ge-blue);
     border-radius: var(--ge-radius-sm);
-    font-size: 0.8rem;
+    font-size: max(0.8rem, 16px);
     font-weight: 600;
     transition: box-shadow 0.15s ease;
 }

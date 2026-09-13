@@ -506,7 +506,7 @@ const displaySubjectAverage = (row, average) => {
     averageCell.textContent = roundGrade(average) + '%';
 
     if (remarksBadge) {
-        const passed = average >= PASSING_GRADE;
+        const passed = roundGrade(average) >= PASSING_GRADE;
         remarksBadge.textContent = passed ? 'Passed' : 'Failed';
         remarksBadge.className = `badge rounded-pill ${
             passed

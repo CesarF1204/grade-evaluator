@@ -2065,9 +2065,13 @@ const initUserNameEditor = () => {
         }
     });
 
-    // Sanitize live: no leading spaces, single spaces between words
+    // Sanitize live: strip numbers and special characters (names may only
+    // contain letters and single spaces), and collapse runs of spaces
     nameInput.addEventListener('input', () => {
-        nameInput.value = nameInput.value.replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
+        nameInput.value = nameInput.value
+            .replace(/[^A-Za-zÀ-ÖØ-öø-ÿ'’\-\s]/g, '')
+            .replace(/^\s+/, '')
+            .replace(/\s{2,}/g, ' ');
     });
 
     nameInput.addEventListener('blur', commitEdit);

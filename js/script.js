@@ -1105,6 +1105,12 @@ const handleConfirmedAction = () => {
 let activeSortKey = null;
 let activeSortDirection = 'asc';
 
+/**
+ * DOCU: Reads the comparable sort value of one subject row for the active
+ * sort column. Subjects use the trimmed name-input text, Average uses the
+ * numeric cell value, Remarks use the badge text. Blank averages, blank
+ * remarks, and empty names return empty:true so they sort last.
+ */
 const getRowSortValue = (row, key) => {
     if (key === 'subject') {
         const nameInput = row.querySelector(SUBJECT_NAME_INPUT_SELECTOR);
@@ -1883,6 +1889,7 @@ const initAddSubjectControl = () => {
             if (isValid && newValue && newValue !== originalValue) {
                 showSuccessToast(`Subject name updated to "${newValue}".`);
             }
+            if (activeSortKey === 'subject') applyActiveSort();
         }
     });
 
@@ -1917,6 +1924,7 @@ const initAddSubjectControl = () => {
                 if (newValue && newValue !== originalValue) {
                     showSuccessToast(`Subject name updated to "${newValue}".`);
                 }
+                if (activeSortKey === 'subject') applyActiveSort();
                 const row = nameInput.closest(SUBJECT_ROW_SELECTOR);
                 const firstGrade = row.querySelector(GRADE_INPUT_SELECTOR);
                 if (firstGrade) firstGrade.focus();

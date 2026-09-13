@@ -866,6 +866,35 @@ const deleteSubjectRow = (row) => {
 let pendingConfirmAction = null;
 
 /**
+ * DOCU: Remembers which control opened the confirmation modal so focus can be
+ * returned there once the modal closes. Restoring focus keeps keyboard and
+ * screen-reader users oriented and avoids leaving focus on <body>.
+ * Last Updated Date: September 13, 2026
+ * @var lastConfirmTrigger
+ * @author Cesar
+ */
+let lastConfirmTrigger = null;
+
+/**
+ * DOCU: Moves focus out of the confirmation modal when it still lives inside.
+ * Chrome blocks `aria-hidden="true"` on an ancestor that contains the focused
+ * element ("Blocked aria-hidden on an element because its descendant retained
+ * focus"), which Bootstrap sets while hiding the modal. Blurring first keeps
+ * the focused element out of the hidden subtree for assistive technology.
+ * Last Updated Date: September 13, 2026
+ * @function blurFocusedModalDescendant
+ * @param {object} modalElement - the confirmation modal element
+ * @author Cesar
+ */
+const blurFocusedModalDescendant = (modalElement) => {
+    if (!modalElement) return;
+    const focused = document.activeElement;
+    if (focused && focused !== document.body && modalElement.contains(focused)) {
+        focused.blur();
+    }
+};
+
+/**
  * DOCU: This module-level flag tracks whether the shared confirmation modal <br>
  * is currently open. While it is true, no Bootstrap tooltip is allowed to <br>
  * trigger or show (see the global `show.bs.tooltip` guard in <br>
@@ -981,12 +1010,12 @@ const initTooltipSuppressionWhileModalOpen = () => {
  * "Clear All Grades", danger for "Remove Subject"), stores the pending <br>
  * action, and then shows the modal. Only the modal's confirm button <br>
  * (see handleConfirmedAction) ever executes the destructive change. <br>
- * Last Updated Date: September 12, 2026 <br>
+ * Last Updated Date: September 13, 2026 <br>
  * @function showConfirmModal
- * @param {object} options - { type: "reset"|"delete", row: <tr> }
+ * @param {object} options - { type: "reset"|"delete", row: <tr>, trigger: <button> }
  * @author Cesar
  */
-const showConfirmModal = ({ type, row }) => {
+const showConfirmModal = ({ type, row, trigger }) => {
     const modalElement = document.querySelector(CONFIRM_MODAL_SELECTOR);
     if (!modalElement) return;
 
@@ -1014,6 +1043,8 @@ const showConfirmModal = ({ type, row }) => {
 
     // Keep exactly one pending action; re-opening the modal simply replaces it
     pendingConfirmAction = { type, row };
+    // Remember the invoking control so focus can be restored when the modal closes
+    lastConfirmTrigger = trigger && trigger.isConnected ? trigger : null;
 
     // A tap/click on the row action can leave its tooltip visible behind the
     // modal (especially on touch). Hide everything first and mark the modal
@@ -1050,6 +1081,10 @@ const handleConfirmedAction = () => {
 
     const modalElement = document.querySelector(CONFIRM_MODAL_SELECTOR);
     const modalInstance = modalElement ? bootstrap.Modal.getInstance(modalElement) : null;
+    // Focus is on the Confirm button here. Move it out before Bootstrap sets
+    // aria-hidden="true" on the modal, otherwise Chrome blocks it because a
+    // focused descendant must never be hidden from assistive technology.
+    blurFocusedModalDescendant(modalElement);
     if (modalInstance) modalInstance.hide();
 
     if (type === 'reset' && row.isConnected) {
@@ -1089,14 +1124,14 @@ const initRowActions = () => {
         const resetButton = event.target.closest(RESET_BUTTON_SELECTOR);
         if (resetButton) {
             const row = resetButton.closest('tr');
-            if (row) showConfirmModal({ type: 'reset', row });
+            if (row) showConfirmModal({ type: 'reset', row, trigger: resetButton });
             return;
         }
 
         const deleteButton = event.target.closest(DELETE_BUTTON_SELECTOR);
         if (deleteButton) {
             const row = deleteButton.closest('tr');
-            if (row) showConfirmModal({ type: 'delete', row });
+            if (row) showConfirmModal({ type: 'delete', row, trigger: deleteButton });
         }
     });
 
@@ -1112,6 +1147,13 @@ const initRowActions = () => {
         confirmActionButton.addEventListener('click', handleConfirmedAction);
     }
 
+    // Move focus out before the modal starts hiding so Bootstrap's
+    // aria-hidden="true" is never applied to an ancestor of the focused
+    // element (Cancel, Confirm, or the X button all live inside the modal).
+    modalElement.addEventListener('hide.bs.modal', () => {
+        blurFocusedModalDescendant(modalElement);
+    });
+
     // Clear the pending action and re-allow tooltips whenever the modal
     // closes by any means (Cancel button, Esc key, backdrop click, or the
     // X close button)
@@ -1119,6 +1161,12 @@ const initRowActions = () => {
         pendingConfirmAction = null;
         isConfirmModalOpen = false;
         hideAllVisibleTooltips();
+        // Return focus to the invoking row action when it still exists
+        // (delete removes its row); otherwise fall back to leaving focus on body.
+        if (lastConfirmTrigger && lastConfirmTrigger.isConnected) {
+            lastConfirmTrigger.focus({ preventScroll: true });
+        }
+        lastConfirmTrigger = null;
     });
 };
 

@@ -1144,30 +1144,44 @@ let activeSortDirection = 'asc';
 /**
  * DOCU: Reads the comparable sort value of one subject row for the active
  * sort column. Subjects use the trimmed name-input text, Average uses the
- * numeric cell value, Remarks use the badge text. Blank averages, blank
- * remarks, and empty names return empty:true so they sort last.
+ * numeric cell value, Remarks use the badge text. Blank averages (dash or
+ * empty) and blank remarks are flagged `special`, as are `Incomplete`
+ * remarks and blank subject names, so they sort first on ascending and
+ * last on descending.
  */
 const getRowSortValue = (row, key) => {
     if (key === 'subject') {
         const nameInput = row.querySelector(SUBJECT_NAME_INPUT_SELECTOR);
-        const text = nameInput ? nameInput.value.trim() : '';
-        return { empty: text === '', text: text, number: Number.NaN };
+        // null/undefined and whitespace-only names are empty subjects, treated
+        // as special values: first on ascending, last on descending.
+        const text = nameInput && typeof nameInput.value === 'string' ? nameInput.value.trim() : '';
+        return { empty: text === '', special: text === '', text: text, number: Number.NaN };
     }
     if (key === 'average') {
         const averageCell = row.querySelector(AVERAGE_CELL_SELECTOR);
         const raw = averageCell ? averageCell.textContent.trim() : '';
-        if (!raw || raw === '—') return { empty: true, text: '', number: Number.NaN };
+        // Dash, blank, or unparseable averages are special values: first on
+        // ascending, last on descending (never mixed with real percentages).
+        if (!raw || raw === '—' || raw === '-') return { empty: true, special: true, text: '', number: Number.NaN };
         const number = Number.parseFloat(raw);
-        if (Number.isNaN(number)) return { empty: true, text: raw, number: Number.NaN };
-        return { empty: false, text: raw, number: number };
+        if (Number.isNaN(number)) return { empty: true, special: true, text: raw, number: Number.NaN };
+        return { empty: false, special: false, text: raw, number: number };
     }
     const badge = row.querySelector(REMARKS_BADGE_SELECTOR);
     const text = badge ? badge.textContent.trim() : '';
     const isEmpty = text === '' || text === '—';
-    return { empty: isEmpty, text: isEmpty ? '' : text, number: Number.NaN };
+    // `Incomplete` (and blank remarks) is a special value: first on
+    // ascending, last on descending, outside the A–Z remark ordering.
+    const isSpecial = isEmpty || text === 'Incomplete';
+    return { empty: isEmpty, special: isSpecial, text: isEmpty ? '' : text, number: Number.NaN };
 };
 
 const compareSubjectRows = (a, b, key, direction) => {
+    // Special values (Average `-`/blank, Remarks `Incomplete`/blank) are
+    // pinned: first on ascending, last on descending, regardless of direction.
+    if (a.value.special && b.value.special) return a.index - b.index;
+    if (a.value.special) return direction === 'desc' ? 1 : -1;
+    if (b.value.special) return direction === 'desc' ? -1 : 1;
     if (a.value.empty && b.value.empty) return a.index - b.index;
     if (a.value.empty) return 1;
     if (b.value.empty) return -1;

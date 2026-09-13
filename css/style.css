@@ -63,11 +63,37 @@ body {
     border: 0 !important;
 }
 
-/* Ensure School Year badge stays right-aligned on all screens */
-.ge-card-header .badge {
+/* Ensure School Year badge stays right-aligned on all screens.
+   Targets the real header element (the old ".ge-card-header .badge"
+   selector matched nothing since that class was never on the header). */
+.ge-card > .card-header .badge {
     margin-left: auto;
     -webkit-flex-shrink: 0;
     flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Header identity block: let it grow to fill space, but allow the
+   title/name column to shrink so a long student name never pushes
+   the School Year badge off the row. */
+.ge-header-identity {
+    min-width: 0;
+}
+
+.ge-header-title-block {
+    min-width: 0;
+}
+
+/* Truncated full name: ellipsis on overflow; a Bootstrap tooltip
+   (managed in script.js) reveals the full name on hover. */
+.ge-user-name {
+    min-width: 0;
+}
+
+.ge-user-name-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 
@@ -780,13 +806,12 @@ th[data-sortable-col] {
         padding: 0.75rem !important;
     }
     .ge-card > .card-header {
-        align-items: center !important;
         padding: 0.875rem 1.125rem !important;
     }
     .ge-card > .card-header > div:first-child {
-        /* Allow title area to shrink on small screens */
+        /* Allow title area to shrink on small screens (no clipping, so a
+           long student name wraps and stays fully visible) */
         min-width: 0;
-        overflow: hidden;
         gap: 0.625rem !important;
     }
     .ge-card > .card-header .bg-primary {
@@ -805,13 +830,12 @@ th[data-sortable-col] {
         white-space: nowrap;
     }
     .ge-card > .card-header small {
-        /* Smaller subtitle on mobile - still readable */
+        /* Smaller subtitle on mobile - still readable. Full name is NOT
+           truncated: it wraps to the next line instead of ellipsizing. */
         font-size: 0.75rem !important;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow-wrap: anywhere;
         /* Reserve space below the text so the ::after underline highlight
-           stays inside the overflow clip instead of being cut off */
+           stays visible while wrapping */
         padding-bottom: 0.4rem;
     }
     .ge-card > .card-header small::after {
@@ -1202,8 +1226,16 @@ th[data-sortable-col] {
 .ge-user-name {
     display: inline-flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.4rem;
     max-width: 100%;
+}
+
+/* Long student names wrap fully instead of overflowing or being
+   truncated (flex items default to min-width:auto, which blocks
+   shrinking, so explicitly allow it). */
+.ge-user-name-text {
+    min-width: 0;
 }
 
 /* Plain name text, as it was before the edit affordance was added —

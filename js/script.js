@@ -2021,9 +2021,59 @@ const initUserNameEditor = () => {
     const nameInput = document.querySelector(USER_NAME_INPUT_SELECTOR);
     if (!wrapper || !nameText || !editButton || !nameInput) return;
 
+    // The full name is limited to this many characters before it is
+    // truncated for display; the tooltip always shows the full name.
+    const NAME_DISPLAY_LIMIT = 20;
+
+    // Keep the complete name in a data attribute so editing and the
+    // tooltip always work with the full value, never the truncated one.
+    const getFullName = () => nameText.dataset.fullName ?? nameText.textContent.trim();
+
+    const setFullName = (value) => {
+        nameText.dataset.fullName = value;
+        nameText.textContent = value.length > NAME_DISPLAY_LIMIT
+            ? `${value.slice(0, NAME_DISPLAY_LIMIT)}…`
+            : value;
+    };
+
+    // Keep the name tooltip in sync with the current full name. The
+    // tooltip only ever shows on hover when the name exceeds the
+    // display limit (checked in the mouseenter listener below).
+    const syncNameTooltip = () => {
+        const fullName = getFullName();
+        nameText.setAttribute('data-bs-toggle', 'tooltip');
+        nameText.setAttribute('data-bs-placement', 'bottom');
+        nameText.setAttribute('data-bs-title', fullName);
+        if (window.bootstrap && bootstrap.Tooltip) {
+            const existingTooltip = bootstrap.Tooltip.getInstance(nameText);
+            if (existingTooltip) existingTooltip.dispose();
+            bootstrap.Tooltip.getOrCreateInstance(nameText, { trigger: 'manual' });
+        }
+    };
+
+    nameText.addEventListener('mouseenter', () => {
+        if (nameText.hidden) return;
+        const instance = window.bootstrap && bootstrap.Tooltip ? bootstrap.Tooltip.getInstance(nameText) : null;
+        if (!instance) return;
+        const isTruncated = getFullName().length > NAME_DISPLAY_LIMIT || nameText.scrollWidth > nameText.clientWidth;
+        if (isTruncated) {
+            instance.show();
+        } else {
+            instance.hide();
+        }
+    });
+
+    nameText.addEventListener('mouseleave', () => {
+        const instance = window.bootstrap && bootstrap.Tooltip ? bootstrap.Tooltip.getInstance(nameText) : null;
+        if (instance) instance.hide();
+    });
+
+    setFullName(nameText.textContent.trim());
+    syncNameTooltip();
+
     const enterEditMode = () => {
         if (!nameInput.hidden) return;
-        nameInput.value = nameText.textContent.trim();
+        nameInput.value = getFullName();
         nameText.hidden = true;
         editButton.hidden = true;
         nameInput.hidden = false;
@@ -2041,13 +2091,14 @@ const initUserNameEditor = () => {
 
     const commitEdit = () => {
         if (nameInput.hidden) return;
-        const originalValue = nameText.textContent.trim();
+        const originalValue = getFullName();
         // Trim + collapse runs of spaces so "John   Doe" becomes "John Doe"
         const newValue = nameInput.value.trim().replace(/\s+/g, ' ');
         exitEditMode();
 
         if (newValue && newValue !== originalValue) {
-            nameText.textContent = newValue;
+            setFullName(newValue);
+            syncNameTooltip(); // refresh the truncated-name tooltip content
             showSuccessToast(`Full name updated to "${newValue}".`);
         }
         // Empty / spaces-only edits keep the previous name (no toast)

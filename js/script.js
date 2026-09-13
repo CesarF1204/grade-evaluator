@@ -36,6 +36,10 @@ const CONFIRM_MODAL_TITLE_SELECTOR = '#ge_confirm_modal_title';
 const CONFIRM_MODAL_BODY_SELECTOR = '#ge_confirm_modal_body';
 const CONFIRM_MODAL_ACTION_SELECTOR = '#ge_confirm_modal_action';
 const LIVE_REGION_SELECTOR = '#ge_live_region';
+const USER_NAME_WRAPPER_SELECTOR = '#ge_user_name_wrapper';
+const USER_NAME_TEXT_SELECTOR = '#ge_user_name_text';
+const USER_NAME_EDIT_BUTTON_SELECTOR = '#ge_user_name_edit_btn';
+const USER_NAME_INPUT_SELECTOR = '#ge_user_name_input';
 const PASSING_GRADE = 75;
 const SORT_BUTTON_SELECTOR = '.ge-sort-btn';
 const SORT_ICON_DEFAULT_CLASS = 'bi bi-arrow-down-up';
@@ -61,8 +65,6 @@ const GRADE_BLOCKED_TITLE = 'Enter the subject name first';
 /**
  * DOCU: Message shown when two subject rows share the same name. <br>
  * Kept in one constant so inline titles, toasts, and grade tooltips stay in sync. <br>
- * Last Updated Date: September 13, 2026 <br>
- * @author Cesar
  */
 const NAME_DUPLICATE_MESSAGE = 'Subject name is already taken. Please choose a different name.';
 const GRADE_DUPLICATE_TITLE = 'Resolve the duplicate subject name first';
@@ -73,8 +75,6 @@ const NAME_REQUIRED_ANNOUNCEMENT = 'Please enter a subject name before entering 
  * with (focusin / input / focusout). Stored as the element instance (not its
  * value) so duplicate subject names still resolve to the correct row.
  * Also owns the monotonically increasing row-id / interaction-sequence counters.
- * Last Updated Date: September 13, 2026
- * @author Cesar
  */
 let lastInteractedNameInput = null;
 let subjectRowIdCounter = 0;
@@ -903,9 +903,6 @@ const deleteSubjectRow = (row) => {
  * moment the destructive button was clicked, and is cleared as soon as the <br>
  * modal is hidden — so clicking Cancel, pressing Esc, or clicking outside <br>
  * always results in no changes. <br>
- * Last Updated Date: September 12, 2026 <br>
- * @var pendingConfirmAction
- * @author Cesar
  */
 let pendingConfirmAction = null;
 
@@ -914,8 +911,6 @@ let pendingConfirmAction = null;
  * returned there once the modal closes. Restoring focus keeps keyboard and
  * screen-reader users oriented and avoids leaving focus on <body>.
  * Last Updated Date: September 13, 2026
- * @var lastConfirmTrigger
- * @author Cesar
  */
 let lastConfirmTrigger = null;
 
@@ -946,9 +941,6 @@ const blurFocusedModalDescendant = (modalElement) => {
  * focusing, tapping, or keyboard-activating any background control while the <br>
  * modal is visible never displays a tooltip above or behind the modal on <br>
  * desktop, tablet, or touch devices. <br>
- * Last Updated Date: September 13, 2026 <br>
- * @var isConfirmModalOpen
- * @author Cesar
  */
 let isConfirmModalOpen = false;
 
@@ -2011,6 +2003,76 @@ const updateSchoolYearBadge = () => {
     schoolYearBadge.textContent = `S.Y. ${currentYear}-${nextYear}`;
 };
 
+/**
+ * DOCU: This function is used to make the header full name ("Cesar <br>
+ * Francisco") editable, following the same interaction as the subject <br>
+ * name inputs. Hovering the name reveals a pencil edit icon; clicking it <br>
+ * swaps the name text for an input field. Enter or blur commits the value <br>
+ * (spaces-only entries fall back to the previous name), Escape cancels, <br>
+ * and a success toast fires only when the name actually changed. <br>
+ * Last Updated Date: September 13, 2026 <br>
+ * @function initUserNameEditor
+ * @author Cesar
+ */
+const initUserNameEditor = () => {
+    const wrapper = document.querySelector(USER_NAME_WRAPPER_SELECTOR);
+    const nameText = document.querySelector(USER_NAME_TEXT_SELECTOR);
+    const editButton = document.querySelector(USER_NAME_EDIT_BUTTON_SELECTOR);
+    const nameInput = document.querySelector(USER_NAME_INPUT_SELECTOR);
+    if (!wrapper || !nameText || !editButton || !nameInput) return;
+
+    const enterEditMode = () => {
+        if (!nameInput.hidden) return;
+        nameInput.value = nameText.textContent.trim();
+        nameText.hidden = true;
+        editButton.hidden = true;
+        nameInput.hidden = false;
+        // Place the cursor at the end of the value instead of selecting all
+        const cursorPosition = nameInput.value.length;
+        nameInput.focus();
+        nameInput.setSelectionRange(cursorPosition, cursorPosition);
+    };
+
+    const exitEditMode = () => {
+        nameInput.hidden = true;
+        nameText.hidden = false;
+        editButton.hidden = false;
+    };
+
+    const commitEdit = () => {
+        if (nameInput.hidden) return;
+        const originalValue = nameText.textContent.trim();
+        // Trim + collapse runs of spaces so "John   Doe" becomes "John Doe"
+        const newValue = nameInput.value.trim().replace(/\s+/g, ' ');
+        exitEditMode();
+
+        if (newValue && newValue !== originalValue) {
+            nameText.textContent = newValue;
+            showSuccessToast(`Full name updated to "${newValue}".`);
+        }
+        // Empty / spaces-only edits keep the previous name (no toast)
+    };
+
+    editButton.addEventListener('click', enterEditMode);
+
+    nameInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            nameInput.blur(); // routes through the blur commit
+        } else if (event.key === 'Escape') {
+            nameInput.value = '';
+            nameInput.blur(); // empty commit keeps the previous name
+        }
+    });
+
+    // Sanitize live: no leading spaces, single spaces between words
+    nameInput.addEventListener('input', () => {
+        nameInput.value = nameInput.value.replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
+    });
+
+    nameInput.addEventListener('blur', commitEdit);
+};
+
 const initGradeEvaluator = () => {
     // Set default/fallback value for Total Average Remarks before any calculations
     setDefaultTotalAverageRemarks();
@@ -2021,6 +2083,9 @@ const initGradeEvaluator = () => {
 
     // Dynamically set the School Year badge to current year and next year
     updateSchoolYearBadge();
+
+    // Editable header full name (hover pencil icon -> input -> toast on change)
+    initUserNameEditor();
 
     updateAllAverages();
     updateAllClearButtons();

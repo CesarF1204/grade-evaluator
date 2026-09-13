@@ -33,7 +33,11 @@
                             </span>
                             <div>
                                 <h1 class="h6 fw-bold text-uppercase mb-0" id="ge_page_title">Grade Evaluation</h1>
-                                <small class="text-white-50">Cesar Francisco</small>
+                                <div class="ge-user-name" id="ge_user_name_wrapper">
+                                    <small class="text-white-50 ge-user-name-text" id="ge_user_name_text">Cesar Francisco</small>
+                                    <button type="button" class="ge-user-name-edit" id="ge_user_name_edit_btn" aria-label="Edit full name" title="Edit full name"><i class="bi bi-pencil-fill" aria-hidden="true"></i></button>
+                                    <input type="text" class="ge-user-name-input" id="ge_user_name_input" maxlength="60" aria-label="Full name" autocomplete="off" hidden>
+                                </div>
                             </div>
                         </div>
                         <span class="badge rounded-pill text-bg-light fw-medium" id="ge_school_year"></span>

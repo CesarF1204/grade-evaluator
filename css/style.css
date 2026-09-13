@@ -810,6 +810,16 @@ th[data-sortable-col] {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        /* Reserve space below the text so the ::after underline highlight
+           stays inside the overflow clip instead of being cut off */
+        padding-bottom: 0.4rem;
+    }
+    .ge-card > .card-header small::after {
+        /* Mobile: keep the highlight inside the padding box (overflow:
+           hidden clips anything at a negative offset) while visually
+           matching the desktop 0.35rem gap under the text */
+        bottom: 0.05rem;
+        height: 0.15rem;
     }
     .ge-card > .card-header .badge {
         /* Smaller badge on mobile - still readable */
@@ -1179,4 +1189,67 @@ th[data-sortable-col] {
         margin-left: auto;
         margin-right: 0;
     }
+}
+
+/* ===== Editable header full name ("Cesar Francisco") ===== */
+.ge-user-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    max-width: 100%;
+}
+
+/* Plain name text, as it was before the edit affordance was added —
+   no bottom border; only the hover reveal of the pencil icon marks it
+   as editable. */
+.ge-user-name-text {
+    cursor: default;
+}
+
+/* Pencil edit icon: always visible next to the name, with a transparent
+   background and border so it sits quietly on the dark header until used. */
+.ge-user-name-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 1.35rem;
+    height: 1.35rem;
+    padding: 0;
+    color: rgba(255, 255, 255, 0.65);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 0.4rem;
+    font-size: 0.68rem;
+    line-height: 1;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.ge-user-name-edit:hover,
+.ge-user-name-edit:focus-visible {
+    color: #fff;
+    background: rgba(85, 184, 255, 0.25);
+    border-color: rgba(85, 184, 255, 0.55);
+}
+
+/* Edit-mode input replacing the name text */
+.ge-user-name-input {
+    width: 11rem;
+    max-width: 100%;
+    padding: 0.2rem 0.45rem;
+    color: var(--ge-ink);
+    background: #fff;
+    border: 1px solid var(--ge-blue);
+    border-radius: var(--ge-radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: box-shadow 0.15s ease;
+}
+
+.ge-user-name-input:focus {
+    outline: 0;
+    box-shadow: var(--ge-focus);
 }

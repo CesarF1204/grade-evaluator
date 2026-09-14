@@ -576,6 +576,24 @@ th[data-sortable-col] {
     color: var(--ge-blue) !important;
 }
 
+/* Status message row rendered directly below the Total Average row.
+   Spans the full table width and centers its content horizontally. */
+#ge_total_average_status_row td {
+    text-align: center;
+}
+
+#ge_total_average_status_message {
+    display: inline-block;
+}
+
+#ge_total_average_status_message.ge-status--promoted {
+    color: var(--ge-green) !important;
+}
+
+#ge_total_average_status_message.ge-status--unqualified {
+    color: var(--ge-red) !important;
+}
+
 .ge-name-input.is-invalid-name,
 .ge-name-input.is-invalid-name:hover:not(:focus) {
     border-color: var(--ge-red);

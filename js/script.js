@@ -45,12 +45,34 @@ const SORT_BUTTON_SELECTOR = '.ge-sort-btn';
 const SORT_ICON_DEFAULT_CLASS = 'bi bi-arrow-down-up';
 const SORT_ICON_ASC_CLASS = 'bi bi-arrow-up';
 const SORT_ICON_DESC_CLASS = 'bi bi-arrow-down';
+const TOTAL_AVERAGE_STATUS_SELECTOR = '#ge_total_average_status_row';
+const TOTAL_AVERAGE_STATUS_MESSAGE_SELECTOR = '#ge_total_average_status_message';
+const TOTAL_AVERAGE_STATUS_PROMOTED_MESSAGE = "Congratulations! You're promoted to take the next step of your career.";
+
+/**
+ * Builds the "Unqualified" status message with the real number of failed
+ * subjects (handles singular/plural). Kept in one function so the displayed
+ * message always matches the actual failed-subject count.
+ * @function buildUnqualifiedStatusMessage
+ * @param {number} failedCount - the number of subjects with a "Failed" remark
+ * @returns {string} the message for the given failed-subject count
+ * @author Cesar
+ */
+const buildUnqualifiedStatusMessage = (failedCount) =>
+    `Unfortunately, you're not qualified because you have ${failedCount} failed subject${failedCount === 1 ? '' : 's'}.`;
 
 /**
  * Cached reference to the Total Average Remarks cell in the footer.
  * Set once on init and reused for all subsequent updates.
  */
 let totalAverageRemarksCell = null;
+
+/**
+ * Cached reference to the Total Average status row (and its message span).
+ * Set once on init and reused for all subsequent updates.
+ */
+let totalAverageStatusRow = null;
+let totalAverageStatusMessage = null;
 
 /**
  * Strict grade format: 0-100, whole or with up to 2 decimal places.
@@ -663,6 +685,67 @@ const updateTotalAverageRemarks = (subjectRows, totalAverage) => {
     const remarks = calculateTotalAverageRemarks(subjectRows, totalAverage);
     totalAverageRemarksCell.textContent = remarks;
     totalAverageRemarksCell.className = `text-center fw-bold fs-6 ge-total-remark ge-total-remark--${remarks.toLowerCase().replace('—', 'none')}`;
+
+    updateTotalAverageStatusMessage(remarks, countFailedSubjects(subjectRows));
+};
+
+/**
+ * DOCU: Counts how many subject rows currently carry a "Failed" remark badge.
+ * Used to reflect the real number of failed subjects in the "Unqualified"
+ * status message.
+ * Last Updated Date: September 14, 2026
+ * @function countFailedSubjects
+ * @param {NodeList} subjectRows - all subject table rows to evaluate
+ * @returns {number} the number of subjects with a "Failed" remark
+ * @author Cesar
+ */
+const countFailedSubjects = (subjectRows) => {
+    let count = 0;
+    if (!subjectRows) return count;
+    subjectRows.forEach((row) => {
+        const remarksBadge = row.querySelector(REMARKS_BADGE_SELECTOR);
+        if (remarksBadge && remarksBadge.textContent.trim() === 'Failed') {
+            count += 1;
+        }
+    });
+    return count;
+};
+
+/**
+ * DOCU: Shows or hides the status message row directly below the "Total Average"
+ * row based on the current Total Average remark.
+ * - "Unqualified" → danger message ("Unfortunately, you're not qualified...")
+ * - "Promoted"    → success message ("Congratulations! You're promoted...")
+ * - Any other remark ("—") keeps the row hidden so no status text appears.
+ * The row (and its message span) are cached once on init; this function only
+ * toggles them and never creates or duplicates another "Total Average" row.
+ * Last Updated Date: September 14, 2026
+ * @function updateTotalAverageStatusMessage
+ * @param {string} remarks - the current Total Average Remarks value
+ * @param {number} failedCount - the number of failed subjects (used only for the "Unqualified" message)
+ * @author Cesar
+ */
+const updateTotalAverageStatusMessage = (remarks, failedCount = 0) => {
+    if (!totalAverageStatusMessage || !totalAverageStatusRow) return;
+
+    let message = '';
+    let variant = '';
+    if (remarks === 'Promoted') {
+        message = TOTAL_AVERAGE_STATUS_PROMOTED_MESSAGE;
+        variant = 'ge-status--promoted';
+    } else if (remarks === 'Unqualified') {
+        message = buildUnqualifiedStatusMessage(failedCount);
+        variant = 'ge-status--unqualified';
+    }
+
+    totalAverageStatusMessage.textContent = message;
+    totalAverageStatusMessage.className = `fw-medium ge-status ${variant}`.trim();
+
+    if (message) {
+        totalAverageStatusRow.removeAttribute('hidden');
+    } else {
+        totalAverageStatusRow.setAttribute('hidden', '');
+    }
 };
 
 /**
@@ -674,7 +757,9 @@ const updateTotalAverageRemarks = (subjectRows, totalAverage) => {
  */
 const setDefaultTotalAverageRemarks = () => {
     totalAverageRemarksCell = document.querySelector(TOTAL_AVERAGE_REMARKS_SELECTOR);
-    
+    totalAverageStatusRow = document.querySelector(TOTAL_AVERAGE_STATUS_SELECTOR);
+    totalAverageStatusMessage = document.querySelector(TOTAL_AVERAGE_STATUS_MESSAGE_SELECTOR);
+
     if (totalAverageRemarksCell && totalAverageRemarksCell.textContent.trim() === '') {
         totalAverageRemarksCell.textContent = '—';
     }

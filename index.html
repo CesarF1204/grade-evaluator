@@ -173,6 +173,14 @@
                                     <td id="total_average_remarks" class="text-center fw-bold fs-6"></td>
                                     <td class="ge-col-action"></td>
                                 </tr>
+                                <!-- Status message row: only revealed when the Total Average
+                                     remark is Unqualified or Promoted. Created once and toggled
+                                     by the JS so no duplicate "Total Average" row is ever added. -->
+                                <tr id="ge_total_average_status_row" hidden>
+                                    <td colspan="8" class="py-2 text-center">
+                                        <span id="ge_total_average_status_message" class="fw-medium"></span>
+                                    </td>
+                                </tr>
                             </tfoot>
                         </table>
                         </div>
